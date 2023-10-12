@@ -1,60 +1,111 @@
 package com.specknet.pdiotapp.predict
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Handler
+import android.os.HandlerThread
+import android.os.Looper
+import android.util.Log
 import android.widget.TextView
 import com.specknet.pdiotapp.R
+import com.specknet.pdiotapp.utils.Constants
+import com.specknet.pdiotapp.utils.RESpeckLiveData
 import org.tensorflow.lite.Interpreter
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.nio.FloatBuffer
+
+lateinit var respeckLiveUpdateReceiver: BroadcastReceiver
+lateinit var looperRespeck: Looper
+
+val filterTestRespeck = IntentFilter(Constants.ACTION_RESPECK_LIVE_BROADCAST)
+
 
 class PredictingActivity : AppCompatActivity() {
-    lateinit var interpreter: Interpreter
+    private lateinit var interpreter: Interpreter
+    private var inputDataBuff = Array(1){ FloatArray(75){0f} }
+    private var outputDataBuff = Array(1) { FloatArray(12){0f} }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_predict)
 
         val textView = findViewById<TextView>(R.id.predicted_activity)
 
+        val modelByteBuffer = loadModelFile("basicModel1DummyLite.tflite")
+
+        interpreter = Interpreter(modelByteBuffer)
+
+
+        // set up the broadcast receiver
+        respeckLiveUpdateReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+
+                Log.i("thread", "Predictor receiver is running on thread = " + Thread.currentThread().name)
+
+                val action = intent.action
+
+                if (action == Constants.ACTION_RESPECK_LIVE_BROADCAST) {
+
+                    val liveData =
+                        intent.getSerializableExtra(Constants.RESPECK_LIVE_DATA) as RESpeckLiveData
+                    Log.d("Live", "onReceive: liveData = " + liveData)
+
+                    // get all relevant intent contents
+                    val x = liveData.accelX
+                    val y = liveData.accelY
+                    val z = liveData.accelZ
+
+                    val currentActivity = predict(x,y,z)
+                    Log.d("Live", "Predicted " + currentActivity + "for" + liveData)
+                    runOnUiThread {
+                        textView.text = "$currentActivity"
+                    }
+                }
+            }
+        }
+
+        // register receiver on another thread
+        val handlerThreadRespeck = HandlerThread("bgThreadRespeckPredictLive")
+        handlerThreadRespeck.start()
+        looperRespeck = handlerThreadRespeck.looper
+        val handlerRespeck = Handler(looperRespeck)
+        this.registerReceiver(respeckLiveUpdateReceiver, filterTestRespeck, null, handlerRespeck)
+    }
+
+
+    private fun loadModelFile(path2Model: String): ByteBuffer {
         val assetManager = this.assets
-        val modelInputStream = assetManager.open("basicModel1DummyLite.tflite")
+        val modelInputStream = assetManager.open(path2Model)
         val modelBuffer = modelInputStream.readBytes()
 
-        // 使用直接 ByteBuffer，确保字节顺序为本地字节顺序
         val modelByteBuffer = ByteBuffer.allocateDirect(modelBuffer.size)
         modelByteBuffer.order(ByteOrder.nativeOrder())
         modelByteBuffer.put(modelBuffer)
         modelByteBuffer.rewind()
+        return modelByteBuffer
+    }
 
-        val interpreter = Interpreter(modelByteBuffer)
-        // Proceed with inference
+    private fun predict(x: Float, y: Float, z: Float): String? {
+        inputDataBuff[0][0] = 1f
+        inputDataBuff[0][1] = 2f
+        inputDataBuff[0][2] = 3f
+        inputDataBuff[0] = inputDataBuff[0].drop(3).toFloatArray() // drop first 3 elements (oldest reading)
+        inputDataBuff[0] = inputDataBuff[0] + x + y + z
 
-        // 创建模拟的输入数据
-        var inputData = Array(1) { FloatArray(75) }
-        // 填充模拟数据，这里填充了一些示例数据
-        for (i in 0 until 75) {
-            inputData[0][i] = 1.toFloat() /* 设置你的模拟数据 */;
-        }
+        interpreter.run(inputDataBuff, outputDataBuff)
 
-        var outputData = Array(1) { FloatArray(12) }
+        var maxIndex = 0
+        var maxValue = outputDataBuff[0][0]
 
-        // 将输入数据传递给模型
-        interpreter.run(inputData, outputData)
-
-        // 获取模型的输出
-        var maxIndex = 0 // 初始化最大值的索引为0
-        var maxValue = outputData[0][0] // 初始化最大值为数组的第一个元素
-
-        for (i in 1 until outputData[0].size) {
-            if (outputData[0][i] > maxValue) {
-                maxValue = outputData[0][i]
+        for (i in 1 until outputDataBuff[0].size) {
+            if (outputDataBuff[0][i] > maxValue) {
+                maxValue = outputDataBuff[0][i]
                 maxIndex = i
             }
         }
-
-        // TODO -- model's output
-        val activityCode = maxIndex
 
         // TODO -- label map
         val activityMap = mapOf(
@@ -70,19 +121,15 @@ class PredictingActivity : AppCompatActivity() {
             9 to "9",
             10 to "10",
             11 to "11",
-
         )
 
-        val currentActivity = activityMap[activityCode]
-
-        runOnUiThread {
-            textView.text = "$currentActivity"
-        }
-
+        return activityMap[maxIndex]
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        unregisterReceiver(respeckLiveUpdateReceiver)
+        looperRespeck.quit()
         interpreter.close()
     }
 }
