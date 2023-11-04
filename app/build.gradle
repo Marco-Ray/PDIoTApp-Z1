@@ -64,4 +64,6 @@ dependencies {
     implementation 'org.tensorflow:tensorflow-lite:2.5.0'
     // Import the GPU delegate plugin Library for GPU inference
     implementation 'org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.4.4'
+
+    implementation 'com.google.android.material:material:1.2.0'
 }

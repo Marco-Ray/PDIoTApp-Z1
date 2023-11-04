@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    android:background="#ffffff">
+    <item android:id="@+id/home"
+        android:icon="@drawable/home"
+        android:title="@string/button_home"/>
+    <item android:id="@+id/predict"
+        android:icon="@drawable/play_circle_outline"
+        android:title="@string/button_predict" />
+    <item android:id="@+id/account"
+        android:icon="@drawable/account_circle"
+        android:title="@string/button_account" />
+</menu>
