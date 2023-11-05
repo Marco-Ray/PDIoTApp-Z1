@@ -5,6 +5,8 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
+import androidx.fragment.app.FragmentTransaction
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -33,8 +35,30 @@ class HomeFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
+        val view = inflater.inflate(R.layout.fragment_home, container, false)
+
+        val loginButton = view.findViewById<Button>(R.id.button_login)
+        val signupButton = view.findViewById<Button>(R.id.button_signup)
+
+        loginButton.setOnClickListener {
+            loadFragment(LoginFragment())
+            true
+        }
+
+        signupButton.setOnClickListener {
+            loadFragment(SignupFragment())
+            true
+        }
+
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_home, container, false)
+        return view
+    }
+
+    private fun loadFragment(fragment: Fragment) {
+        val transaction: FragmentTransaction = requireActivity().supportFragmentManager.beginTransaction()
+        transaction.replace(R.id.container, fragment)
+        transaction.addToBackStack(null) // 可选，用于将事务添加到返回栈
+        transaction.commit()
     }
 
     companion object {

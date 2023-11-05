@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     android:background="#ffffff">
-    <item android:id="@+id/home"
-        android:icon="@drawable/home"
-        android:title="@string/button_home"/>
+    <item android:id="@+id/connect"
+        android:icon="@drawable/ic_bluetooth_icon"
+        android:title="@string/button_BLE"/>
+<!--    <item android:id="@+id/live"-->
+<!--        android:icon="@drawable/live_data"-->
+<!--        android:title="@string/button_BLE"/>-->
     <item android:id="@+id/predict"
         android:icon="@drawable/play_circle_outline"
         android:title="@string/button_predict" />

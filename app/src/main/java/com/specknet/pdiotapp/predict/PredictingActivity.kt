@@ -28,6 +28,7 @@ class PredictingActivity : AppCompatActivity() {
     private lateinit var interpreter: Interpreter
     private var inputDataBuff = Array(1){ FloatArray(75){0f} }
     private var outputDataBuff = Array(1) { FloatArray(12){0f} }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_predict)
@@ -37,6 +38,24 @@ class PredictingActivity : AppCompatActivity() {
         val modelByteBuffer = loadModelFile("basicModel1DummyLite.tflite")
 
         interpreter = Interpreter(modelByteBuffer)
+
+        // 获取 SharedPreferences 对象
+        val sharedPreferences = this.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+
+        // 从 SharedPreferences 中读取用户名
+        val savedUsername = sharedPreferences.getString("username", null)
+        val userName = findViewById<TextView>(R.id.userName)
+
+        if (savedUsername != null) {
+            // 读取到了保存的用户名
+            // 在这里使用 savedUsername，例如显示在 UI 上
+            userName.text = savedUsername
+        } else {
+            // SharedPreferences 中没有保存的用户名
+            // 你可以执行适当的操作，例如提示用户输入用户名
+            userName.text = "Anonymous"
+        }
+
 
 
         // set up the broadcast receiver
