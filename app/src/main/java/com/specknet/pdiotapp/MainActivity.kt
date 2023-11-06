@@ -55,7 +55,7 @@ import com.specknet.pdiotapp.bluetooth.BluetoothSpeckService
 import com.specknet.pdiotapp.bluetooth.ConnectingActivity
 import com.specknet.pdiotapp.live.LiveDataActivity
 import com.specknet.pdiotapp.onboarding.OnBoardingActivity
-import com.specknet.pdiotapp.predict.PredictingActivity
+import com.specknet.pdiotapp.predict.PredictFragment
 import com.specknet.pdiotapp.utils.Constants
 import com.specknet.pdiotapp.utils.Utils
 import kotlinx.android.synthetic.main.activity_main.*
@@ -111,7 +111,7 @@ class MainActivity : AppCompatActivity() {
                     startActivity(intent)
                 }
                 R.id.predict -> {
-                    val intent = Intent(this, PredictingActivity::class.java)
+                    val intent = Intent(this, PredictFragment::class.java)
                     startActivity(intent)
                 }
                 R.id.account -> {
