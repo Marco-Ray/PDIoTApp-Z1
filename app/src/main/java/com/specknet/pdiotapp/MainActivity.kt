@@ -54,7 +54,7 @@ import androidx.fragment.app.FragmentTransaction
 import com.google.android.material.snackbar.Snackbar
 import com.specknet.pdiotapp.bluetooth.BluetoothSpeckService
 import com.specknet.pdiotapp.bluetooth.ConnectingFragment
-import com.specknet.pdiotapp.live.LiveDataActivity
+import com.specknet.pdiotapp.live.LiveDataFragment
 import com.specknet.pdiotapp.onboarding.OnBoardingActivity
 import com.specknet.pdiotapp.predict.PredictFragment
 import com.specknet.pdiotapp.utils.Constants
@@ -107,8 +107,7 @@ class MainActivity : AppCompatActivity() {
         bottomNav.setOnNavigationItemSelectedListener {
             when (it.itemId) {
                 R.id.connect -> {
-//                    TODO if connected show live data
-                    loadFragment(ConnectingFragment())
+                    loadFragment(LiveDataFragment())
                     true
                 }
                 R.id.predict -> {
