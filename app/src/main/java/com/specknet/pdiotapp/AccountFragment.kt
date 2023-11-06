@@ -1,10 +1,16 @@
 package com.specknet.pdiotapp
 
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.TextView
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentTransaction
+import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Observer
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -34,8 +40,76 @@ class AccountFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_account, container, false)
+        val view = inflater.inflate(R.layout.fragment_account, container, false)
+
+//        // 获取 SharedPreferences 对象
+//        val sharedPreferences = requireContext().getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+//        // 从 SharedPreferences 中读取用户名
+//        val savedUsername = sharedPreferences.getString("username", null)
+        //这里省略掉其他部分
+        val model by activityViewModels<UserInfoViewModel>()
+        val logoutMenu = view.findViewById<LinearLayout>(R.id.logout_menu)
+        val loginMenu = view.findViewById<LinearLayout>(R.id.login_menu)
+        val userName = model.userName.value
+        val userNameTextView = view.findViewById<TextView>(R.id.userName)
+        userNameTextView.text = userName
+
+        if (userName.isNullOrEmpty()) {
+            logoutMenu.visibility = View.GONE
+            loginMenu.visibility = View.VISIBLE
+        } else {
+            logoutMenu.visibility = View.VISIBLE
+            loginMenu.visibility = View.GONE
+        }
+        model.userName.observe(this, Observer { newData ->
+            userNameTextView.text = newData
+            if (newData.isNullOrEmpty()) {
+                logoutMenu.visibility = View.GONE
+                loginMenu.visibility = View.VISIBLE
+            } else {
+                logoutMenu.visibility = View.VISIBLE
+                loginMenu.visibility = View.GONE
+            }
+        })
+
+
+        val loginButton = view.findViewById<Button>(R.id.button_login)
+        val signupButton = view.findViewById<Button>(R.id.button_signup)
+        val logoutButton = view.findViewById<Button>(R.id.button_logout)
+
+        loginButton.setOnClickListener {
+            loadFragment(LoginFragment())
+            true
+        }
+
+        signupButton.setOnClickListener {
+            loadFragment(SignupFragment())
+            true
+        }
+
+        logoutButton.setOnClickListener {
+//            // 获取 SharedPreferences 对象
+//            val sharedPreferences = requireContext().getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+//            // 获取 SharedPreferences 编辑器
+//            val editor = sharedPreferences.edit()
+//            // 保存用户名
+//            editor.putString("username", null)
+//            // 应用编辑器的更改
+//            editor.apply()
+
+            model.updateData("")
+        }
+
+        return view
     }
+
+    private fun loadFragment(fragment: Fragment) {
+        val transaction: FragmentTransaction = requireActivity().supportFragmentManager.beginTransaction()
+        transaction.replace(R.id.container, fragment)
+        transaction.addToBackStack(null) // 可选，用于将事务添加到返回栈
+        transaction.commit()
+    }
+
 
     companion object {
         /**

@@ -57,17 +57,16 @@ package com.specknet.pdiotapp
 //            }
 //    }
 //}
-import android.content.Context
-import android.content.Intent
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
-import com.specknet.pdiotapp.predict.PredictingActivity
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentTransaction
+import androidx.fragment.app.activityViewModels
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
@@ -87,10 +86,13 @@ class LoginFragment : Fragment() {
         passwordEditText = view.findViewById(R.id.editTextPassword)
         val loginButton = view.findViewById<Button>(R.id.buttonLogin)
 
-        // 获取 SharedPreferences 对象
-        val sharedPreferences = requireContext().getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
-        // 获取 SharedPreferences 编辑器
-        val editor = sharedPreferences.edit()
+//        // 获取 SharedPreferences 对象
+//        val sharedPreferences = requireContext().getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+//        // 获取 SharedPreferences 编辑器
+//        val editor = sharedPreferences.edit()
+
+        //这里省略掉其他部分
+        val model by activityViewModels<UserInfoViewModel>()
 
         loginButton.setOnClickListener {
             val username = usernameEditText.text.toString()
@@ -100,13 +102,16 @@ class LoginFragment : Fragment() {
                 if (checkLoginCredentials(username, password)) {
                     showToast("Login Successfully")
                     // 例如，跳转到用户主页：loadFragment(UserHomeFragment())
-                    // 保存用户名
-                    editor.putString("username", username)
-                    // 应用编辑器的更改
-                    editor.apply()
+//                    // 保存用户名
+//                    editor.putString("username", username)
+//                    // 应用编辑器的更改
+//                    editor.apply()
 
-                    val intent = Intent(requireActivity(), PredictingActivity::class.java)
-                    startActivity(intent)
+                    // update username
+                    model.updateData(username)
+
+                    loadFragment(AccountFragment())
+                    true
                 } else {
                     showToast("Login Failed, please check your username and password")
                 }
@@ -116,6 +121,13 @@ class LoginFragment : Fragment() {
         }
 
         return view
+    }
+
+    private fun loadFragment(fragment: Fragment) {
+        val transaction: FragmentTransaction = requireActivity().supportFragmentManager.beginTransaction()
+        transaction.replace(R.id.container, fragment)
+        transaction.addToBackStack(null) // 可选，用于将事务添加到返回栈
+        transaction.commit()
     }
 
     private fun showToast(message: String) {

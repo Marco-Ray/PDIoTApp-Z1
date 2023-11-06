@@ -115,8 +115,8 @@ class MainActivity : AppCompatActivity() {
                     startActivity(intent)
                 }
                 R.id.account -> {
-                    val intent = Intent(this, LiveDataActivity::class.java)
-                    startActivity(intent)
+                    loadFragment(AccountFragment())
+                    true
                 }
 
             }

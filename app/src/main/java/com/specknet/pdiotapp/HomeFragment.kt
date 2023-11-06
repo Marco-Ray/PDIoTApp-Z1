@@ -35,30 +35,8 @@ class HomeFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        val view = inflater.inflate(R.layout.fragment_home, container, false)
-
-        val loginButton = view.findViewById<Button>(R.id.button_login)
-        val signupButton = view.findViewById<Button>(R.id.button_signup)
-
-        loginButton.setOnClickListener {
-            loadFragment(LoginFragment())
-            true
-        }
-
-        signupButton.setOnClickListener {
-            loadFragment(SignupFragment())
-            true
-        }
-
         // Inflate the layout for this fragment
-        return view
-    }
-
-    private fun loadFragment(fragment: Fragment) {
-        val transaction: FragmentTransaction = requireActivity().supportFragmentManager.beginTransaction()
-        transaction.replace(R.id.container, fragment)
-        transaction.addToBackStack(null) // 可选，用于将事务添加到返回栈
-        transaction.commit()
+        return inflater.inflate(R.layout.fragment_home, container, false)
     }
 
     companion object {

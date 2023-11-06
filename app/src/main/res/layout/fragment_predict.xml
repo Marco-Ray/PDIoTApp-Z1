@@ -3,13 +3,28 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".PredictFragment">
+    tools:context="com.specknet.pdiotapp.predict.PredictFragment">
 
-    <!-- TODO: Update blank fragment layout -->
-    <TextView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:textColor="#43a047"
-        android:text="Predict Fragment" />
+        android:gravity="center"
+        android:orientation="vertical"
+        tools:layout_editor_absoluteX="1dp"
+        tools:layout_editor_absoluteY="1dp">
 
+        <TextView
+            android:id="@+id/userName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="UserName" />
+
+        <TextView
+            android:id="@+id/predicted_activity"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="current_activity"
+            android:textSize="30dp" />
+
+    </LinearLayout>
 </FrameLayout>

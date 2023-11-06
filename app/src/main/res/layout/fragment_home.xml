@@ -44,19 +44,6 @@
             android:paddingTop="10dp"
             android:paddingEnd="10dp">
 
-            <Button
-                android:id="@+id/button_login"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Login" />
-
-            <Button
-                android:id="@+id/button_signup"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Signup" />
         </LinearLayout>
 
     </LinearLayout>
