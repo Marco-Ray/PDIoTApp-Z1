@@ -50,9 +50,10 @@ import android.widget.Button
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.fragment.app.FragmentTransaction
 import com.google.android.material.snackbar.Snackbar
 import com.specknet.pdiotapp.bluetooth.BluetoothSpeckService
-import com.specknet.pdiotapp.bluetooth.ConnectingActivity
+import com.specknet.pdiotapp.bluetooth.ConnectingFragment
 import com.specknet.pdiotapp.live.LiveDataActivity
 import com.specknet.pdiotapp.onboarding.OnBoardingActivity
 import com.specknet.pdiotapp.predict.PredictFragment
@@ -107,12 +108,14 @@ class MainActivity : AppCompatActivity() {
             when (it.itemId) {
                 R.id.connect -> {
 //                    TODO if connected show live data
-                    val intent = Intent(this, ConnectingActivity::class.java)
-                    startActivity(intent)
+                    loadFragment(ConnectingFragment())
+                    true
                 }
                 R.id.predict -> {
-                    val intent = Intent(this, PredictFragment::class.java)
-                    startActivity(intent)
+//                    val intent = Intent(this, PredictFragment::class.java)
+//                    startActivity(intent)
+                    loadFragment(PredictFragment())
+                    true
                 }
                 R.id.account -> {
                     loadFragment(AccountFragment())
@@ -160,9 +163,10 @@ class MainActivity : AppCompatActivity() {
 //        }
 //    }
 
-    private fun loadFragment(fragment: Fragment){
-        val transaction = supportFragmentManager.beginTransaction()
-        transaction.replace(R.id.container,fragment)
+    private fun loadFragment(fragment: Fragment) {
+        val transaction: FragmentTransaction = this.supportFragmentManager.beginTransaction()
+        transaction.replace(R.id.container, fragment)
+        transaction.addToBackStack(null) // 可选，用于将事务添加到返回栈
         transaction.commit()
     }
 

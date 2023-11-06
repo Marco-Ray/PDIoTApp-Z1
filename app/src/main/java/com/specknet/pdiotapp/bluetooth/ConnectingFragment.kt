@@ -2,7 +2,10 @@ package com.specknet.pdiotapp.bluetooth
 
 import android.app.Activity
 import android.app.PendingIntent
-import android.content.*
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.content.SharedPreferences
 import android.nfc.NfcAdapter
 import android.nfc.NfcManager
 import android.nfc.Tag
@@ -14,60 +17,68 @@ import android.text.InputFilter
 import android.text.InputFilter.AllCaps
 import android.text.TextWatcher
 import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat.getSystemService
+import androidx.fragment.app.Fragment
 import com.specknet.pdiotapp.R
-import com.specknet.pdiotapp.barcode.BarcodeActivity
 import com.specknet.pdiotapp.utils.Constants
 import com.specknet.pdiotapp.utils.Utils
-import kotlinx.android.synthetic.main.activity_connecting.*
 import java.util.*
+import com.specknet.pdiotapp.barcode.BarcodeActivity
+import kotlinx.android.synthetic.main.fragment_connecting.respeck_code
+import kotlinx.android.synthetic.main.fragment_connecting.thingy_code
 import kotlin.experimental.and
 
-class ConnectingActivity : AppCompatActivity() {
+class ConnectingFragment : Fragment() {
 
-    val REQUEST_CODE_SCAN_RESPECK = 0
+    private val REQUEST_CODE_SCAN_RESPECK = 0
 
-    // Respeck
     private lateinit var scanRespeckButton: Button
     private lateinit var respeckID: EditText
     private lateinit var connectSensorsButton: Button
     private lateinit var restartConnectionButton: Button
-//    private lateinit var disconnectRespeckButton: Button
-
-    // Thingy
-//    private lateinit var scanThingyButton: Button
     private lateinit var thingyID: EditText
-//    private lateinit var connectThingyButton: Button
-//    private lateinit var disconnectThingyButton: Button
 
-    lateinit var sharedPreferences: SharedPreferences
+    private lateinit var sharedPreferences: SharedPreferences
 
-    var nfcAdapter: NfcAdapter? = null
-    val MIME_TEXT_PLAIN = "application/vnd.bluetooth.le.oob"
+    private var nfcAdapter: NfcAdapter? = null
+    private val MIME_TEXT_PLAIN = "application/vnd.bluetooth.le.oob"
     private val TAG = "NFCReader"
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_connecting)
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        val rootView = inflater.inflate(R.layout.fragment_connecting, container, false)
 
-        // scan respeck
-        scanRespeckButton = findViewById(R.id.scan_respeck)
-        respeckID = findViewById(R.id.respeck_code)
-        connectSensorsButton = findViewById(R.id.connect_sensors_button)
-        restartConnectionButton = findViewById(R.id.restart_service_button)
+        // Initialize your UI components and set click listeners here
 
-        thingyID = findViewById(R.id.thingy_code)
+        return rootView
+    }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        // Initialize UI components and set click listeners here
+        scanRespeckButton = view.findViewById(R.id.scan_respeck)
+        respeckID = view.findViewById(R.id.respeck_code)
+        connectSensorsButton = view.findViewById(R.id.connect_sensors_button)
+        restartConnectionButton = view.findViewById(R.id.restart_service_button)
+        thingyID = view.findViewById(R.id.thingy_code)
+
+        // Set click listeners for buttons
         scanRespeckButton.setOnClickListener {
-            val barcodeScanner = Intent(this, BarcodeActivity::class.java)
+            val barcodeScanner = Intent(requireContext(), BarcodeActivity::class.java)
             startActivityForResult(barcodeScanner, REQUEST_CODE_SCAN_RESPECK)
         }
 
         connectSensorsButton.setOnClickListener {
-            // TODO don't enable this until both sensors have been scanned? or at least warn the user
+            // TODO don't enable requireContext() until both sensors have been scanned? or at least warn the user
             // start the bluetooth service
 
             sharedPreferences.edit().putString(
@@ -86,12 +97,12 @@ class ConnectingActivity : AppCompatActivity() {
         }
 
         restartConnectionButton.setOnClickListener {
+            // Implement your restartConnectionButton logic here
             startSpeckService()
         }
 
-
         // first read shared preferences to see if there was a respeck there already
-        sharedPreferences = getSharedPreferences(Constants.PREFERENCES_FILE, Context.MODE_PRIVATE)
+        sharedPreferences = requireContext().getSharedPreferences(Constants.PREFERENCES_FILE, Context.MODE_PRIVATE)
         if (sharedPreferences.contains(Constants.RESPECK_MAC_ADDRESS_PREF)) {
             Log.i("sharedpref", "Already saw a respeckID")
             respeck_code.setText(
@@ -128,47 +139,40 @@ class ConnectingActivity : AppCompatActivity() {
                 }
             }
 
-            override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
+            override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
 
-            }
-
-            override fun afterTextChanged(p0: Editable?) {
-
-            }
+            override fun afterTextChanged(p0: Editable?) {}
         })
 
         respeckID.filters = arrayOf<InputFilter>(AllCaps())
-
         thingyID.filters = arrayOf<InputFilter>(AllCaps())
-        val nfcManager = getSystemService(Context.NFC_SERVICE) as NfcManager
+        val nfcManager = requireContext().getSystemService(Context.NFC_SERVICE) as NfcManager
         nfcAdapter = nfcManager.defaultAdapter
 
         if (nfcAdapter == null) {
-            Toast.makeText(this, "Phone does not support NFC pairing", Toast.LENGTH_LONG).show()
+            Toast.makeText(requireContext(), "Phone does not support NFC pairing", Toast.LENGTH_LONG).show()
         } else if (nfcAdapter!!.isEnabled()) {
-            Toast.makeText(this, "NFC Enabled", Toast.LENGTH_LONG).show()
+            Toast.makeText(requireContext(), "NFC Enabled", Toast.LENGTH_LONG).show()
         } else {
-            Toast.makeText(this, "NFC Disabled", Toast.LENGTH_LONG).show()
+            Toast.makeText(requireContext(), "NFC Disabled", Toast.LENGTH_LONG).show()
         }
-
-
     }
 
     fun startSpeckService() {
         // TODO if it's not already running
-        val isServiceRunning = Utils.isServiceRunning(BluetoothSpeckService::class.java, applicationContext)
+        val isServiceRunning = Utils.isServiceRunning(BluetoothSpeckService::class.java, requireContext())
         Log.i("service","isServiceRunning = " + isServiceRunning)
 
         if (!isServiceRunning) {
             Log.i("service", "Starting BLT service")
-            val simpleIntent = Intent(this, BluetoothSpeckService::class.java)
-            this.startService(simpleIntent)
+            val simpleIntent = Intent(requireContext(), BluetoothSpeckService::class.java)
+            requireContext().startService(simpleIntent)
         }
         else {
             Log.i("service", "Service already running, restart")
-            this.stopService(Intent(this, BluetoothSpeckService::class.java))
-            Toast.makeText(this, "restarting service with new sensors", Toast.LENGTH_SHORT).show()
-            this.startService(Intent(this, BluetoothSpeckService::class.java))
+            requireContext().stopService(Intent(requireContext(), BluetoothSpeckService::class.java))
+            Toast.makeText(requireContext(), "restarting service with new sensors", Toast.LENGTH_SHORT).show()
+            requireContext().startService(Intent(requireContext(), BluetoothSpeckService::class.java))
 
         }
     }
@@ -177,15 +181,12 @@ class ConnectingActivity : AppCompatActivity() {
         super.onResume()
 
         if (nfcAdapter != null) {
-            setupForegroundDispatch(this, nfcAdapter!!)
+            setupForegroundDispatch(requireActivity(), nfcAdapter!!)
         }
     }
 
-    /**
-     * @param activity The corresponding [Activity] requesting the foreground dispatch.
-     * @param adapter The [NfcAdapter] used for the foreground dispatch.
-     */
-    fun setupForegroundDispatch(activity: Activity, adapter: NfcAdapter) {
+    // Implement the rest of the logic and methods here
+    private fun setupForegroundDispatch(activity: Activity, adapter: NfcAdapter) {
         Log.d(TAG, "setupForegroundDispatch: here ")
         val intent = Intent(activity.applicationContext, activity.javaClass)
         intent.flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -198,7 +199,7 @@ class ConnectingActivity : AppCompatActivity() {
             )
         )
 
-        // Notice that this is the same filter as in our manifest.
+        // Notice that requireContext() is the same filter as in our manifest.
         filters[0] = IntentFilter()
         filters[0]!!.addAction(NfcAdapter.ACTION_NDEF_DISCOVERED)
         filters[0]!!.addCategory(Intent.CATEGORY_DEFAULT)
@@ -216,12 +217,6 @@ class ConnectingActivity : AppCompatActivity() {
         adapter.enableForegroundDispatch(activity, pendingIntent, filters, techList)
     }
 
-    override fun onNewIntent(intent: Intent?) {
-        Log.d(TAG, "onNewIntent: here")
-        super.onNewIntent(intent)
-        handleIntent(intent)
-    }
-
     private fun handleIntent(intent: Intent?) {
         Log.d(TAG, "handleIntent: here")
         val action = intent?.action
@@ -232,13 +227,13 @@ class ConnectingActivity : AppCompatActivity() {
             Log.d(TAG, "handleIntent: type = " + type)
 
             if (MIME_TEXT_PLAIN.equals(type)) {
-                // This is the Respeck
+                // requireContext() is the Respeck
                 val tag: Tag? = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG)
 
                 val ndef = Ndef.get(tag)
 
                 if (ndef == null) {
-                    // NDEF is not supported by this Tag
+                    // NDEF is not supported by requireContext() Tag
                     return
                 }
 
@@ -261,7 +256,7 @@ class ConnectingActivity : AppCompatActivity() {
                 val ble_addr: String = Utils.bytesToHexNfc(Arrays.copyOfRange(payload, 5, 11))
                 Log.i("NFCReader", "BLE Address: $ble_addr")
 
-                Toast.makeText(this, "NFC scanned $ble_name ($ble_addr)", Toast.LENGTH_LONG).show()
+                Toast.makeText(requireContext(), "NFC scanned $ble_name ($ble_addr)", Toast.LENGTH_LONG).show()
 
 //                if (!ble_addr.contains(':')) {
 //                    // insert a : after each two characters
@@ -271,14 +266,14 @@ class ConnectingActivity : AppCompatActivity() {
 
             }
             else {
-                // this is the thingy
+                // requireContext() is the thingy
                 Log.d(TAG, "handleIntent: here after type")
                 val tag: Tag? = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG)
 
                 val ndef = Ndef.get(tag)
 
                 if (ndef == null) {
-                    // NDEF is not supported by this Tag
+                    // NDEF is not supported by requireContext() Tag
                     return
                 }
 
@@ -301,7 +296,7 @@ class ConnectingActivity : AppCompatActivity() {
 //                val ble_addr: String = Utils.bytesToHex(Arrays.copyOfRange(payload, 5, 11))
                 Log.i("NFCReader", "BLE Address: $ble_addr")
 //
-                Toast.makeText(this, "NFC scanned ($ble_addr)", Toast.LENGTH_LONG).show()
+                Toast.makeText(requireContext(), "NFC scanned ($ble_addr)", Toast.LENGTH_LONG).show()
 
                 thingyID.setText(ble_addr)
 
@@ -321,7 +316,7 @@ class ConnectingActivity : AppCompatActivity() {
     override fun onPause() {
 
         if(nfcAdapter != null) {
-            stopForegroundDispatch(this, nfcAdapter!!)
+            stopForegroundDispatch(activity, nfcAdapter!!)
         }
         super.onPause()
     }
@@ -336,7 +331,7 @@ class ConnectingActivity : AppCompatActivity() {
                 Log.i("ble", "Scan result=" + scanResult)
 
                 if (scanResult.contains(":")) {
-                    // this is a respeck V6 and we should store its MAC address
+                    // requireContext() is a respeck V6 and we should store its MAC address
                     respeck_code.setText(scanResult)
                     sharedPreferences.edit().putString(
                         Constants.RESPECK_MAC_ADDRESS_PREF,
@@ -372,5 +367,4 @@ class ConnectingActivity : AppCompatActivity() {
         }
 
     }
-
 }

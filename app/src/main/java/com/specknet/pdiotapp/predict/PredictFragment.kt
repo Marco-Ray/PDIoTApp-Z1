@@ -157,8 +157,11 @@ class PredictFragment : Fragment() {
             model.userName.value
         }
         model.userName.observe(viewLifecycleOwner, Observer { newData ->
-            println("Updated Predict")
-            userName.text = newData
+            userName.text = if (newData.isNullOrEmpty()) {
+                "Anonymous"
+            } else {
+                newData
+            }
         })
 
         // 加载模型和其他初始化操作

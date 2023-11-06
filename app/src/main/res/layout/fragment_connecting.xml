@@ -5,7 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".bluetooth.ConnectingActivity">
+    tools:context=".bluetooth.ConnectingFragment">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_height="wrap_content"
@@ -66,28 +66,28 @@
                 </LinearLayout>
 
 
-<!--                <LinearLayout-->
-<!--                    android:layout_width="match_parent"-->
-<!--                    android:layout_height="wrap_content"-->
-<!--                    android:orientation="horizontal"-->
-<!--                    android:gravity="center">-->
+                <!--                <LinearLayout-->
+                <!--                    android:layout_width="match_parent"-->
+                <!--                    android:layout_height="wrap_content"-->
+                <!--                    android:orientation="horizontal"-->
+                <!--                    android:gravity="center">-->
 
 
-<!--                    <Button-->
-<!--                        android:id="@+id/connect_button"-->
-<!--                        android:layout_width="0dp"-->
-<!--                        android:layout_weight="1"-->
-<!--                        android:layout_height="wrap_content"-->
-<!--                        android:text="Connect"/>-->
+                <!--                    <Button-->
+                <!--                        android:id="@+id/connect_button"-->
+                <!--                        android:layout_width="0dp"-->
+                <!--                        android:layout_weight="1"-->
+                <!--                        android:layout_height="wrap_content"-->
+                <!--                        android:text="Connect"/>-->
 
-<!--                    <Button-->
-<!--                        android:id="@+id/disconnect_button"-->
-<!--                        android:layout_width="0dp"-->
-<!--                        android:layout_weight="1"-->
-<!--                        android:layout_height="wrap_content"-->
-<!--                        android:text = "Disconnect"/>-->
+                <!--                    <Button-->
+                <!--                        android:id="@+id/disconnect_button"-->
+                <!--                        android:layout_width="0dp"-->
+                <!--                        android:layout_weight="1"-->
+                <!--                        android:layout_height="wrap_content"-->
+                <!--                        android:text = "Disconnect"/>-->
 
-<!--                </LinearLayout>-->
+                <!--                </LinearLayout>-->
 
             </LinearLayout>
 
