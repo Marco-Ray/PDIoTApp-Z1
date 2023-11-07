@@ -53,7 +53,6 @@ import androidx.core.app.ActivityCompat
 import androidx.fragment.app.FragmentTransaction
 import com.google.android.material.snackbar.Snackbar
 import com.specknet.pdiotapp.bluetooth.BluetoothSpeckService
-import com.specknet.pdiotapp.bluetooth.ConnectingFragment
 import com.specknet.pdiotapp.live.LiveDataFragment
 import com.specknet.pdiotapp.onboarding.OnBoardingActivity
 import com.specknet.pdiotapp.predict.PredictFragment
@@ -111,8 +110,6 @@ class MainActivity : AppCompatActivity() {
                     true
                 }
                 R.id.predict -> {
-//                    val intent = Intent(this, PredictFragment::class.java)
-//                    startActivity(intent)
                     loadFragment(PredictFragment())
                     true
                 }

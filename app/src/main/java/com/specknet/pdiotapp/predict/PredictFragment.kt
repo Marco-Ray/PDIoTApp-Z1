@@ -71,9 +71,8 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
-import androidx.activity.viewModels
-import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Observer
@@ -100,8 +99,41 @@ class PredictFragment : Fragment() {
     ): View? {
         val rootView = inflater.inflate(R.layout.fragment_predict, container, false)
 
+        // TODO -- label map
+        val activityMap = mapOf(
+            0 to "Sitting",
+            1 to "Standing",
+            2 to "Lying",
+            3 to "3",
+            4 to "4",
+            5 to "5",
+            6 to "6",
+            7 to "7",
+            8 to "8",
+            9 to "9",
+            10 to "10",
+            11 to "11",
+        )
+
+        val activityImgMap = mapOf(
+            0 to R.drawable.sitting,
+            1 to R.drawable.standing,
+            2 to R.drawable.lying,
+            3 to R.drawable.sitting,
+            4 to R.drawable.sitting,
+            5 to R.drawable.sitting,
+            6 to R.drawable.sitting,
+            7 to R.drawable.sitting,
+            8 to R.drawable.sitting,
+            9 to R.drawable.sitting,
+            10 to R.drawable.sitting,
+            11 to R.drawable.sitting,
+        )
+
         // 示例：获取 TextView 并设置文本
         val textView = rootView.findViewById<TextView>(R.id.predicted_activity)
+        // Find the ImageView by its ID
+        val imageView = rootView.findViewById<ImageView>(R.id.current_activity_image)
 
         // 设置点击事件监听器
         rootView.setOnClickListener {
@@ -127,10 +159,16 @@ class PredictFragment : Fragment() {
                     val y = liveData.accelY
                     val z = liveData.accelZ
 
-                    val currentActivity = predict(x,y,z)
+                    val currentActivityIndex = predict(x,y,z)
+//                    val currentActivityIndex = 1
+                    val currentActivity = activityMap[currentActivityIndex]
+                    val currentActivityImage = activityImgMap[currentActivityIndex]
+
                     Log.d("Live", "Predicted " + currentActivity + "for" + liveData)
                     runOnUiThread {
                         textView.text = "$currentActivity"
+                        // Set the new image resource
+                        imageView.setImageResource(currentActivityImage as Int)
                     }
                 }
             }
@@ -183,7 +221,7 @@ class PredictFragment : Fragment() {
         return modelByteBuffer
     }
 
-    private fun predict(x: Float, y: Float, z: Float): String? {
+    private fun predict(x: Float, y: Float, z: Float): Int? {
         inputDataBuff[0][0] = 1f
         inputDataBuff[0][1] = 2f
         inputDataBuff[0][2] = 3f
@@ -202,23 +240,7 @@ class PredictFragment : Fragment() {
             }
         }
 
-        // TODO -- label map
-        val activityMap = mapOf(
-            0 to "Sitting",
-            1 to "Standing",
-            2 to "Lying",
-            3 to "3",
-            4 to "4",
-            5 to "5",
-            6 to "6",
-            7 to "7",
-            8 to "8",
-            9 to "9",
-            10 to "10",
-            11 to "11",
-        )
-
-        return activityMap[maxIndex]
+        return maxIndex
     }
 
 

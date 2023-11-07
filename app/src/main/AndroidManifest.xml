@@ -51,16 +51,16 @@
         <activity
             android:name=".barcode.BarcodeActivity"
             android:screenOrientation="portrait" />
-<!--        <activity-->
-<!--            android:name=".bluetooth.ConnectingFragment"-->
-<!--            android:screenOrientation="portrait">-->
-<!--            <intent-filter>-->
-<!--                <action android:name="com.specknet.pdiotapp.RESPECK_CONNECTED" />-->
-<!--            </intent-filter>-->
-<!--            <intent-filter>-->
-<!--                <action android:name="com.specknet.pdiotapp.RESPECK_DISCONNECTED" />-->
-<!--            </intent-filter>-->
-<!--        </activity>-->
+        <activity
+            android:name=".bluetooth.ConnectingActivity"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="com.specknet.pdiotapp.RESPECK_CONNECTED" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.specknet.pdiotapp.RESPECK_DISCONNECTED" />
+            </intent-filter>
+        </activity>
 <!--        <activity-->
 <!--            android:name=".predict.PredictingActivity"-->
 <!--            android:screenOrientation="portrait"/>-->

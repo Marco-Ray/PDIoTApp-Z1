@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".predict.PredictFragment">
 
     <LinearLayout
+        android:id="@+id/predict_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center"
@@ -17,13 +19,24 @@
             android:id="@+id/userName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="UserName" />
+            android:layout_weight="1"
+            android:gravity="bottom"
+            android:text="UserName"
+            android:textAlignment="center" />
+
+        <ImageView
+            android:id="@+id/current_activity_image"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="2"
+            android:src="@drawable/unknown" />
 
         <TextView
             android:id="@+id/predicted_activity"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="current_activity"
+            android:layout_weight="1"
             android:textSize="30dp" />
 
     </LinearLayout>
