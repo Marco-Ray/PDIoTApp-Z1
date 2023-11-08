@@ -53,8 +53,9 @@
     <string name="thingy_gyro">Gyro = (%1$.3f, %2$.3f, %3$.3f)</string>
     <string name="thingy_mag">Mag = (%1$.3f, %2$.3f, %3$.3f)</string>
 
+    <string name="button_home">Home</string>
     <string name="button_BLE">Connect</string>
-    <string name="button_live">Live Data</string>
     <string name="button_predict">Predict</string>
+    <string name="button_history">History</string>
     <string name="button_account">Account</string>
 </resources>

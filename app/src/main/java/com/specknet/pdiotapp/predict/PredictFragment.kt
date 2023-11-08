@@ -115,6 +115,7 @@ class PredictFragment : Fragment() {
             11 to "11",
         )
 
+        // TODO
         val activityImgMap = mapOf(
             0 to R.drawable.sitting,
             1 to R.drawable.standing,

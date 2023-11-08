@@ -105,12 +105,20 @@ class MainActivity : AppCompatActivity() {
 
         bottomNav.setOnNavigationItemSelectedListener {
             when (it.itemId) {
+                R.id.home -> {
+                    loadFragment(HomeFragment())
+                    true
+                }
                 R.id.connect -> {
                     loadFragment(LiveDataFragment())
                     true
                 }
                 R.id.predict -> {
                     loadFragment(PredictFragment())
+                    true
+                }
+                R.id.history -> {
+                    loadFragment(HistoryFragment())
                     true
                 }
                 R.id.account -> {
