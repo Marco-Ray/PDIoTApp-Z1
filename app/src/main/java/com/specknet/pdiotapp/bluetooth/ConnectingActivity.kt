@@ -16,6 +16,8 @@ import android.text.TextWatcher
 import android.util.Log
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.specknet.pdiotapp.R
@@ -52,6 +54,11 @@ class ConnectingActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_connecting)
+
+        val backButton = findViewById<ImageView>(R.id.button_back)
+        backButton.setOnClickListener {
+            finish()
+        }
 
         // scan respeck
         scanRespeckButton = findViewById(R.id.scan_respeck)

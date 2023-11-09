@@ -67,12 +67,6 @@
                 android:textAlignment="center" />
 
             <Button
-                android:id="@+id/button_historical_data"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Historical Data" />
-
-            <Button
                 android:id="@+id/button_logout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
