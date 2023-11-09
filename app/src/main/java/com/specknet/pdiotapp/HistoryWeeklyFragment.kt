@@ -41,13 +41,14 @@ class HistoryWeeklyFragment : Fragment() {
 
         // 创建示例数据
         val entries1 = ArrayList<BarEntry>()
+        entries1.add(BarEntry(0f, floatArrayOf(5f, 15f, 20f)))
         entries1.add(BarEntry(1f, floatArrayOf(5f, 15f, 20f)))
         entries1.add(BarEntry(2f, floatArrayOf(5f, 20f, 1f)))
         entries1.add(BarEntry(3f, floatArrayOf(5f, 15f, 20f)))
         entries1.add(BarEntry(4f, floatArrayOf(5f, 3f, 10f)))
         entries1.add(BarEntry(5f, floatArrayOf(5f, 2f, 10f)))
         entries1.add(BarEntry(6f, floatArrayOf(5f, 15f, 20f)))
-        entries1.add(BarEntry(7f, floatArrayOf(5f, 15f, 20f)))
+
 
         // 创建数据集
         val dataSet1 = BarDataSet(entries1, "数据集 1")
@@ -64,16 +65,6 @@ class HistoryWeeklyFragment : Fragment() {
     }
 
     private fun configureHorizontalBarChart() {
-        // 配置水平堆叠的条形图
-        horizontalBarChart.setDrawBarShadow(false)
-        horizontalBarChart.setDrawValueAboveBar(true)
-        horizontalBarChart.description.isEnabled = false
-
-        val xAxis = horizontalBarChart.xAxis
-        xAxis.position = XAxis.XAxisPosition.BOTTOM
-        xAxis.setDrawGridLines(false)
-        xAxis.axisMinimum = 0f
-
         // 自定义 X 轴标签
         val customLabels = arrayOf(
             "Monday",
@@ -83,8 +74,22 @@ class HistoryWeeklyFragment : Fragment() {
             "Friday",
             "Saturday",
             "Sunday",
-            ""
         ).reversed()
+
+        // 配置水平堆叠的条形图
+        horizontalBarChart.setDrawBarShadow(false)
+        horizontalBarChart.setDrawValueAboveBar(true)
+        horizontalBarChart.description.isEnabled = false
+
+        val xAxis = horizontalBarChart.xAxis
+        xAxis.position = XAxis.XAxisPosition.BOTTOM
+        xAxis.setDrawGridLines(false)
+        // 设置 X 轴的标签间隔为1，强制显示所有标签
+        xAxis.isGranularityEnabled = true
+        xAxis.granularity = 1f
+        xAxis.axisMinimum = 0f
+        xAxis.labelCount = customLabels.size
+
         xAxis.valueFormatter = IndexAxisValueFormatter(customLabels)
 
         val leftAxis = horizontalBarChart.axisLeft

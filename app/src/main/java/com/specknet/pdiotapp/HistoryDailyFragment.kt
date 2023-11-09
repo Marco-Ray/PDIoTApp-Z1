@@ -12,7 +12,6 @@ import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
-import com.github.mikephil.charting.interfaces.datasets.IBarDataSet
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -61,13 +60,13 @@ class HistoryDailyFragment : Fragment() {
             "shuffle walking",
             "running/jogging",
             "miscellaneous movements",
-            ""
         ).reversed()
         xAxis.valueFormatter = IndexAxisValueFormatter(customLabels)
         xAxis.position = XAxis.XAxisPosition.BOTTOM
         // 设置 X 轴的标签间隔为1，强制显示所有标签
         xAxis.isGranularityEnabled = true
         xAxis.granularity = 1f
+        xAxis.labelCount = customLabels.size;
 
         // 自定义 Y 轴
         val leftAxis = horizontalBarChart.axisLeft
@@ -77,6 +76,7 @@ class HistoryDailyFragment : Fragment() {
 
         // 创建示例数据
         val entries = ArrayList<BarEntry>()
+        entries.add(BarEntry(0f, 10f))
         entries.add(BarEntry(1f, 1f))
         entries.add(BarEntry(2f, 2f))
         entries.add(BarEntry(3f, 3f))
@@ -88,7 +88,7 @@ class HistoryDailyFragment : Fragment() {
         entries.add(BarEntry(9f, 4f))
         entries.add(BarEntry(10f, 0f))
         entries.add(BarEntry(11f, 20f))
-        entries.add(BarEntry(12f, 10f))
+
 
         // 允许 X 轴和 Y 轴自动缩放以适应数据
 //        xAxis.axisMinimum = entries.minByOrNull { it.x }?.x ?: 0f
