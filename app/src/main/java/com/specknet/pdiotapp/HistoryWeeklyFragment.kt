@@ -155,6 +155,7 @@ class HistoryWeeklyFragment : Fragment() {
         val month = calendar.get(Calendar.MONTH)
         val day = calendar.get(Calendar.DAY_OF_MONTH)
 
+
         val datePickerDialog = DatePickerDialog(
             requireContext(),
             R.style.DatePickerTheme,

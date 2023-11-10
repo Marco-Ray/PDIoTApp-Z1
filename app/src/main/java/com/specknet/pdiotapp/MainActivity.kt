@@ -59,6 +59,7 @@ import com.specknet.pdiotapp.predict.PredictFragment
 import com.specknet.pdiotapp.utils.Constants
 import com.specknet.pdiotapp.utils.Utils
 import kotlinx.android.synthetic.main.activity_main.*
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
@@ -90,6 +91,9 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         loadFragment(HomeFragment())
         LoginFragment().arguments = globalBundle
+
+        val newLocale = Locale("en", "UK")
+        Locale.setDefault(newLocale)
 
         // check whether the onboarding screen should be shown
         val sharedPreferences = getSharedPreferences(Constants.PREFERENCES_FILE, Context.MODE_PRIVATE)
