@@ -1,10 +1,12 @@
 package com.specknet.pdiotapp
 
+import android.app.DatePickerDialog
 import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.fragment.app.Fragment
 import com.github.mikephil.charting.charts.HorizontalBarChart
 import com.github.mikephil.charting.components.XAxis
@@ -12,6 +14,10 @@ import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
+import java.util.Calendar
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -29,6 +35,10 @@ class HistoryWeeklyFragment : Fragment() {
     private var param2: String? = null
 
     private lateinit var horizontalBarChart: HorizontalBarChart
+    private lateinit var firstDateView: TextView
+    private lateinit var secondDateView: TextView
+    private var fromDate: Date? = null
+    private var toDate: Date? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -38,6 +48,31 @@ class HistoryWeeklyFragment : Fragment() {
         horizontalBarChart = view.findViewById(R.id.hBarChartWeekly)
         // 配置水平堆叠的条形图
         configureHorizontalBarChart()
+
+        firstDateView = view.findViewById(R.id.firstDate)
+        firstDateView.setOnClickListener {
+            showDatePickerDialog { selectedDate ->
+                fromDate = selectedDate
+                if ((toDate == null) || (fromDate!! > toDate!!)) {
+                    toDate = addDaysToDate(fromDate!!, 1)
+                    secondDateView.text = formatDateToString(toDate!!)
+                }
+                firstDateView.text = formatDateToString(fromDate!!)
+
+            }
+        }
+
+        secondDateView = view.findViewById(R.id.secondDate)
+        secondDateView.setOnClickListener {
+            showDatePickerDialog { selectedDate ->
+                toDate = selectedDate
+                if ((fromDate == null) || (fromDate!! > toDate!!)) {
+                    fromDate = addDaysToDate(toDate!!, -1)
+                    firstDateView.text = formatDateToString(fromDate!!)
+                }
+                secondDateView.text = formatDateToString(toDate!!)
+            }
+        }
 
         // 创建示例数据
         val entries1 = ArrayList<BarEntry>()
@@ -98,6 +133,52 @@ class HistoryWeeklyFragment : Fragment() {
         val rightAxis = horizontalBarChart.axisRight
         rightAxis.axisMinimum = 0f
     }
+
+    fun formatDateToString(date: Date?): String {
+        date?.let {
+            val format = SimpleDateFormat("yyyy-MM-dd")
+            return format.format(it)
+        }
+        return "null" // 或者返回空字符串，取决于你的需求
+    }
+
+    private fun addDaysToDate(date: Date, days: Int): Date {
+        val calendar = Calendar.getInstance()
+        calendar.time = date
+        calendar.add(Calendar.DAY_OF_YEAR, days)
+        return calendar.time
+    }
+
+    private fun showDatePickerDialog(onDateSelected: (Date) -> Unit) {
+        val calendar = Calendar.getInstance()
+        val year = calendar.get(Calendar.YEAR)
+        val month = calendar.get(Calendar.MONTH)
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+        val datePickerDialog = DatePickerDialog(
+            requireContext(),
+            R.style.DatePickerTheme,
+            DatePickerDialog.OnDateSetListener { _, selectedYear, selectedMonth, selectedDay ->
+                // 在 OnDateSetListener 中创建 Date 对象
+                val selectedDate = Calendar.getInstance()
+                selectedDate.set(selectedYear, selectedMonth, selectedDay)
+                val date = selectedDate.time
+
+                // 调用回调函数，将选定的 Date 对象传递出去
+                onDateSelected(date)
+            },
+            year,
+            month,
+            day
+        )
+
+        // 设置日期选择对话框的最小日期和最大日期（可选）
+        // datePickerDialog.datePicker.minDate = System.currentTimeMillis() - 1000
+        // datePickerDialog.datePicker.maxDate = System.currentTimeMillis() + 1000
+
+        datePickerDialog.show()
+    }
+
 
     companion object {
         /**

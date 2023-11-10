@@ -5,10 +5,50 @@
     android:layout_height="match_parent"
     tools:context=".HistoryWeeklyFragment">
 
-    <com.github.mikephil.charting.charts.HorizontalBarChart
-        android:id="@+id/hBarChartWeekly"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/firstDate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="YYYY-MM-DD"
+                android:textAlignment="viewEnd"
+                android:textSize="30sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="to"
+                android:textAlignment="center"
+                android:textSize="30sp" />
+
+            <TextView
+                android:id="@+id/secondDate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="YYYY-MM-DD"
+                android:textAlignment="viewStart"
+                android:textSize="30sp" />
+        </LinearLayout>
+
+
+        <com.github.mikephil.charting.charts.HorizontalBarChart
+            android:id="@+id/hBarChartWeekly"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" >
+        </com.github.mikephil.charting.charts.HorizontalBarChart>
+    </LinearLayout>
 
 
 </FrameLayout>

@@ -1,10 +1,12 @@
 package com.specknet.pdiotapp
 
+import android.app.DatePickerDialog
 import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.fragment.app.Fragment
 import com.github.mikephil.charting.charts.HorizontalBarChart
 import com.github.mikephil.charting.components.XAxis
@@ -12,6 +14,8 @@ import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
+import org.w3c.dom.Text
+import java.util.Calendar
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -29,12 +33,18 @@ class HistoryDailyFragment : Fragment() {
     private var param2: String? = null
 
     private lateinit var horizontalBarChart: HorizontalBarChart
+    private lateinit var dateView: TextView
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_history_daily, container, false)
+
+        dateView = view.findViewById<TextView>(R.id.date)
+        dateView.setOnClickListener {
+            showDatePickerDialog()
+        }
 
         horizontalBarChart = view.findViewById(R.id.hBarChartDaily)
 
@@ -109,6 +119,32 @@ class HistoryDailyFragment : Fragment() {
         horizontalBarChart.data = data
 
         return view
+    }
+
+    private fun showDatePickerDialog() {
+        val calendar = Calendar.getInstance()
+        val year = calendar.get(Calendar.YEAR)
+        val month = calendar.get(Calendar.MONTH)
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+        val datePickerDialog = DatePickerDialog(
+            requireContext(),
+            R.style.DatePickerTheme,
+            DatePickerDialog.OnDateSetListener { _, selectedYear, selectedMonth, selectedDay ->
+                // 在此处处理选定的日期
+                val selectedDate = "$selectedYear-${selectedMonth + 1}-$selectedDay"
+                dateView.text = selectedDate
+            },
+            year,
+            month,
+            day
+        )
+
+        // 设置日期选择对话框的最小日期和最大日期（可选）
+        // datePickerDialog.datePicker.minDate = System.currentTimeMillis() - 1000
+        // datePickerDialog.datePicker.maxDate = System.currentTimeMillis() + 1000
+
+        datePickerDialog.show()
     }
 
     companion object {
