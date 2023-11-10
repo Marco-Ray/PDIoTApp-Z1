@@ -22,6 +22,7 @@
                 android:layout_weight="1"
                 android:text="YYYY-MM-DD"
                 android:textAlignment="viewEnd"
+                android:background="@drawable/border_background"
                 android:textSize="30sp" />
 
             <TextView
@@ -39,6 +40,7 @@
                 android:layout_weight="1"
                 android:text="YYYY-MM-DD"
                 android:textAlignment="viewStart"
+                android:background="@drawable/border_background"
                 android:textSize="30sp" />
         </LinearLayout>
 
