@@ -1,4 +1,4 @@
-package com.specknet.pdiotapp
+package com.specknet.pdiotapp.utils
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData

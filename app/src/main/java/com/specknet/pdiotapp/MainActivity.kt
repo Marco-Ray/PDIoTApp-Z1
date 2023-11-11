@@ -51,8 +51,10 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.FragmentTransaction
+import androidx.room.Room
 import com.google.android.material.snackbar.Snackbar
 import com.specknet.pdiotapp.bluetooth.BluetoothSpeckService
+import com.specknet.pdiotapp.database.RecordDatabase
 import com.specknet.pdiotapp.live.LiveDataFragment
 import com.specknet.pdiotapp.onboarding.OnBoardingActivity
 import com.specknet.pdiotapp.predict.PredictFragment
@@ -85,7 +87,6 @@ class MainActivity : AppCompatActivity() {
     // save userInfo
     val globalBundle = Bundle()
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -94,6 +95,12 @@ class MainActivity : AppCompatActivity() {
 
         val newLocale = Locale("en", "UK")
         Locale.setDefault(newLocale)
+
+        database = Room.databaseBuilder(
+            this,
+            RecordDatabase::class.java,
+            "RecordDatabase"
+        ).build()
 
         // check whether the onboarding screen should be shown
         val sharedPreferences = getSharedPreferences(Constants.PREFERENCES_FILE, Context.MODE_PRIVATE)
@@ -351,4 +358,8 @@ class MainActivity : AppCompatActivity() {
         return super.onOptionsItemSelected(item)
     }
 
+    companion object {
+        lateinit var database: RecordDatabase
+            private set
+    }
 }

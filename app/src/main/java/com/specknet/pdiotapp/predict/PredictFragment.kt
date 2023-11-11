@@ -1,64 +1,5 @@
 package com.specknet.pdiotapp.predict
 
-
-//import android.os.Bundle
-//import androidx.fragment.app.Fragment
-//import android.view.LayoutInflater
-//import android.view.View
-//import android.view.ViewGroup
-//
-//// TODO: Rename parameter arguments, choose names that match
-//// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-//private const val ARG_PARAM1 = "param1"
-//private const val ARG_PARAM2 = "param2"
-//
-///**
-// * A simple [Fragment] subclass.
-// * Use the [PredictFragment.newInstance] factory method to
-// * create an instance of this fragment.
-// */
-//class PredictFragment : Fragment() {
-//    // TODO: Rename and change types of parameters
-//    private var param1: String? = null
-//    private var param2: String? = null
-//
-//    override fun onCreate(savedInstanceState: Bundle?) {
-//        super.onCreate(savedInstanceState)
-//        arguments?.let {
-//            param1 = it.getString(ARG_PARAM1)
-//            param2 = it.getString(ARG_PARAM2)
-//        }
-//    }
-//
-//    override fun onCreateView(
-//        inflater: LayoutInflater, container: ViewGroup?,
-//        savedInstanceState: Bundle?
-//    ): View? {
-//        // Inflate the layout for this fragment
-//        return inflater.inflate(R.layout.fragment_predict, container, false)
-//    }
-//
-//    companion object {
-//        /**
-//         * Use this factory method to create a new instance of
-//         * this fragment using the provided parameters.
-//         *
-//         * @param param1 Parameter 1.
-//         * @param param2 Parameter 2.
-//         * @return A new instance of fragment PredictFragment.
-//         */
-//        // TODO: Rename and change types and number of parameters
-//        @JvmStatic
-//        fun newInstance(param1: String, param2: String) =
-//            PredictFragment().apply {
-//                arguments = Bundle().apply {
-//                    putString(ARG_PARAM1, param1)
-//                    putString(ARG_PARAM2, param2)
-//                }
-//            }
-//    }
-//}
-
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -75,15 +16,22 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
+import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.internal.zzhu.runOnUiThread
 import com.specknet.pdiotapp.R
-import com.specknet.pdiotapp.UserInfoViewModel
+import com.specknet.pdiotapp.database.RecordDao
+import com.specknet.pdiotapp.database.Records
 import com.specknet.pdiotapp.utils.Constants
 import com.specknet.pdiotapp.utils.RESpeckLiveData
+import com.specknet.pdiotapp.utils.UserInfoViewModel
+import kotlinx.coroutines.launch
 import org.tensorflow.lite.Interpreter
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.Date
+import java.util.concurrent.TimeUnit
 
 class PredictFragment : Fragment() {
     private lateinit var interpreter: Interpreter
@@ -93,11 +41,64 @@ class PredictFragment : Fragment() {
     private lateinit var respeckLiveUpdateReceiver: BroadcastReceiver
     val filterTestRespeck = IntentFilter(Constants.ACTION_RESPECK_LIVE_BROADCAST)
 
+    private lateinit var recordDao: RecordDao
+    private lateinit var currentTime: Date
+    private lateinit var previousTime: Date
+    private var recordingActivity: String? = null
+
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         val rootView = inflater.inflate(R.layout.fragment_predict, container, false)
+
+        // Get the database instance
+//        recordDao = MainActivity.database.RecordDao()
+        // 加载模型和其他初始化操作
+        val modelByteBuffer = loadModelFile("basicModel1DummyLite.tflite")
+        interpreter = Interpreter(modelByteBuffer)
+
+        // Example: Query data from the database
+//        queryData()
+
+        // 获取 ViewModel
+        val userModel by activityViewModels<UserInfoViewModel>()
+        val userName = rootView.findViewById<TextView>(R.id.userName)
+        userName.text = if (userModel.userName.value.isNullOrEmpty()) {
+            "Anonymous"
+        } else {
+            userModel.userName.value
+        }
+        userModel.userName.observe(viewLifecycleOwner, Observer { newData ->
+            userName.text = if (newData.isNullOrEmpty()) {
+                "Anonymous"
+            } else {
+                newData
+            }
+        })
+
+        // 在Fragment中定义LiveData
+        val currentActivityLiveData = MutableLiveData<String>()
+
+        currentActivityLiveData.observe(viewLifecycleOwner) { newActivity ->
+            if (recordingActivity.isNullOrEmpty()) {
+                recordingActivity = newActivity
+                previousTime = Date()
+                println(recordingActivity)
+            } else {
+                if (recordingActivity != newActivity) {
+                    println(previousTime)
+                    println(recordingActivity)
+//                            recordActivity(previousTime, recordingActivity!!)
+                    recordingActivity = newActivity
+                    previousTime = Date()
+                    println(recordingActivity)
+                }
+            }
+        }
+
+// ...
 
         // TODO -- label map
         val activityMap = mapOf(
@@ -161,9 +162,11 @@ class PredictFragment : Fragment() {
                     val z = liveData.accelZ
 
                     val currentActivityIndex = predict(x,y,z)
-//                    val currentActivityIndex = 1
                     val currentActivity = activityMap[currentActivityIndex]
                     val currentActivityImage = activityImgMap[currentActivityIndex]
+
+                    currentActivityLiveData.postValue(currentActivity)
+
 
                     Log.d("Live", "Predicted " + currentActivity + "for" + liveData)
                     runOnUiThread {
@@ -180,34 +183,32 @@ class PredictFragment : Fragment() {
         handlerThreadRespeck.start()
         looperRespeck = handlerThreadRespeck.looper
         val handlerRespeck = Handler(looperRespeck)
-        this.requireActivity().registerReceiver(
+        requireContext().registerReceiver(
             respeckLiveUpdateReceiver,
             IntentFilter(Constants.ACTION_RESPECK_LIVE_BROADCAST),
             null,
             handlerRespeck
         )
 
-        // 获取 ViewModel
-        val model by activityViewModels<UserInfoViewModel>()
-        val userName = rootView.findViewById<TextView>(R.id.userName)
-        userName.text = if (model.userName.value.isNullOrEmpty()) {
-            "Anonymous"
-        } else {
-            model.userName.value
-        }
-        model.userName.observe(viewLifecycleOwner, Observer { newData ->
-            userName.text = if (newData.isNullOrEmpty()) {
-                "Anonymous"
-            } else {
-                newData
-            }
-        })
-
-        // 加载模型和其他初始化操作
-        val modelByteBuffer = loadModelFile("basicModel1DummyLite.tflite")
-        interpreter = Interpreter(modelByteBuffer)
-
         return rootView
+    }
+
+    private fun recordActivity(previousTime: Date,currentActivity: String) {
+        // Example: Insert data into the database
+        currentTime = Date()
+        val entity = Records(
+            userName = "Example",
+            dateTime = currentTime,
+            activity = currentActivity,
+            duration = calDurationInSeconds(currentTime, previousTime)
+            )
+        println(entity)
+//        insertData(entity)
+    }
+
+    private fun calDurationInSeconds(startDate: Date, endDate: Date): Long {
+        val durationInMillis = endDate.time - startDate.time
+        return TimeUnit.MILLISECONDS.toSeconds(durationInMillis)
     }
 
     private fun loadModelFile(path2Model: String): ByteBuffer {
@@ -242,6 +243,22 @@ class PredictFragment : Fragment() {
         }
 
         return maxIndex
+    }
+
+    private fun insertData(entity: Records) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            recordDao.insert(entity)
+            val entities = recordDao.getAllEntities()
+//            println(entities)
+        }
+    }
+
+    private fun queryData() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val entities = recordDao.getAllEntities()
+//            println(entities)
+            // Handle the list of entities as needed
+        }
     }
 
 
