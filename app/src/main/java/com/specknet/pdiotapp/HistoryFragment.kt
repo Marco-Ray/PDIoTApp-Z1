@@ -28,18 +28,13 @@ class HistoryFragment : Fragment() {
     private var param2: String? = null
 
     private lateinit var horizontalBarChart: HorizontalBarChart
-    private lateinit var recordDao: RecordDao
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_history, container, false)
-
-        // Get the database instance
-        recordDao = MainActivity.database.RecordDao()
-
-        queryData()
 
         val toggleButton = view.findViewById<ToggleButton>(R.id.toggleButton)
         loadFragment(HistoryDailyFragment())
@@ -57,14 +52,6 @@ class HistoryFragment : Fragment() {
         }
 
         return view
-    }
-
-    private fun queryData() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            val entities = recordDao.getAllEntities()
-            println(entities)
-            // Handle the list of entities as needed
-        }
     }
 
     private fun loadFragment(fragment: Fragment) {

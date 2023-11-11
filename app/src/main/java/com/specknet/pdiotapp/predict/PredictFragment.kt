@@ -29,11 +29,14 @@ import com.specknet.pdiotapp.database.Records
 import com.specknet.pdiotapp.utils.Constants
 import com.specknet.pdiotapp.utils.RESpeckLiveData
 import com.specknet.pdiotapp.utils.UserInfoViewModel
+import kotlinx.android.synthetic.main.fragment_predict.togglePredict
 import kotlinx.coroutines.launch
 import org.tensorflow.lite.Interpreter
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 class PredictFragment : Fragment() {
@@ -45,6 +48,7 @@ class PredictFragment : Fragment() {
     val filterTestRespeck = IntentFilter(Constants.ACTION_RESPECK_LIVE_BROADCAST)
 
     private lateinit var recordDao: RecordDao
+    private lateinit var currentDate: String
     private lateinit var currentTime: Date
     private var previousTime: Date? = null
     private var recordingActivity: String? = null
@@ -56,6 +60,8 @@ class PredictFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         val rootView = inflater.inflate(R.layout.fragment_predict, container, false)
+
+        currentDate = dateToString(Date())
 
         // Get the database instance
         recordDao = MainActivity.database.RecordDao()
@@ -75,24 +81,36 @@ class PredictFragment : Fragment() {
             userModel.userName.value
         }
         userModel.userName.observe(viewLifecycleOwner, Observer { newData ->
-            userName.text = if (newData.isNullOrEmpty()) {
-                "Anonymous"
+             if (newData.isNullOrEmpty()) {
+                userName.text = "Anonymous"
             } else {
-                newData
+                 userName.text = newData
+                 togglePredict.isEnabled = true
+                 togglePredict.text = "Start Record"
             }
         })
 
+
+
         val togglePredict = rootView.findViewById<ToggleButton>(R.id.togglePredict)
+        togglePredict.isEnabled = false
+        togglePredict.text = "Login First"
+
         togglePredict.setOnCheckedChangeListener { buttonView, isChecked ->
             isRecording = isChecked
-            if (isChecked) {
-                Toast.makeText(requireContext(), "Start Record", Toast.LENGTH_SHORT).show()
+            if (userModel.userName.value != null) {
+                if (isChecked) {
+                    Toast.makeText(requireContext(), "Start Record", Toast.LENGTH_SHORT).show()
+                } else {
+                    recordActivity(userModel.userName.value!!, previousTime!!, recordingActivity!!)
+                    recordingActivity = null
+                    previousTime = null
+                    Toast.makeText(requireContext(), "Record Finish", Toast.LENGTH_SHORT).show()
+                }
             } else {
-                recordActivity(userModel.userName.value!!, previousTime!!, recordingActivity!!)
-                recordingActivity = null
-                previousTime = null
-                Toast.makeText(requireContext(), "Record Finish", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Please login First", Toast.LENGTH_SHORT).show()
             }
+
         }
 
         // 在Fragment中定义LiveData
@@ -214,16 +232,24 @@ class PredictFragment : Fragment() {
         currentTime = Date()
         val duration = calDurationInSeconds(previousTime, currentTime)
         // adjust granularity
-        if (duration < 1) {
+        if (duration >= 3) {
             val entity = Records(
                 userName = userName,
-                dateTime = currentTime,
+                date = currentDate,
                 activity = currentActivity,
                 duration = calDurationInSeconds(previousTime, currentTime)
             )
             println(entity)
             insertData(entity)
         }
+    }
+
+    private fun dateToString(date: Date): String {
+        // 定义日期格式
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+
+        // 使用日期格式将 Date 对象转换为字符串
+        return dateFormat.format(date)
     }
 
     private fun calDurationInSeconds(startDate: Date, endDate: Date): Long {

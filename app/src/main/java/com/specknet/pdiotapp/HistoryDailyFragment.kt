@@ -8,14 +8,20 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.github.mikephil.charting.charts.HorizontalBarChart
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
+import com.specknet.pdiotapp.database.RecordDao
+import kotlinx.coroutines.launch
 import org.w3c.dom.Text
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -34,14 +40,23 @@ class HistoryDailyFragment : Fragment() {
 
     private lateinit var horizontalBarChart: HorizontalBarChart
     private lateinit var dateView: TextView
+    private lateinit var todayDate: String
 
+    private lateinit var recordDao: RecordDao
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_history_daily, container, false)
 
-        dateView = view.findViewById<TextView>(R.id.date)
+        // Get the database instance
+        recordDao = MainActivity.database.RecordDao()
+
+        todayDate = dateToString(Date())
+        queryDailyData(todayDate)
+
+        dateView = view.findViewById(R.id.date)
+        dateView.text = todayDate
         dateView.setOnClickListener {
             showDatePickerDialog()
         }
@@ -121,6 +136,14 @@ class HistoryDailyFragment : Fragment() {
         return view
     }
 
+    private fun queryDailyData(selectedDate: String) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val entities = recordDao.getEntitiesByDate(selectedDate)
+            println(entities)
+            // Handle the list of entities as needed
+        }
+    }
+
     private fun showDatePickerDialog() {
         val calendar = Calendar.getInstance()
         val year = calendar.get(Calendar.YEAR)
@@ -145,6 +168,14 @@ class HistoryDailyFragment : Fragment() {
         // datePickerDialog.datePicker.maxDate = System.currentTimeMillis() + 1000
 
         datePickerDialog.show()
+    }
+
+    fun dateToString(date: Date): String {
+        // 定义日期格式
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+
+        // 使用日期格式将 Date 对象转换为字符串
+        return dateFormat.format(date)
     }
 
     companion object {

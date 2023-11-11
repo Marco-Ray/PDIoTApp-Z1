@@ -2,6 +2,7 @@ package com.specknet.pdiotapp.database
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import java.util.Date
 
 @Dao
 interface RecordDao {
@@ -11,4 +12,7 @@ interface RecordDao {
 
     @Query("SELECT * FROM Records")
     suspend fun getAllEntities(): List<Records>
+
+    @Query("SELECT * FROM Records WHERE date = :selectedDate")
+    suspend fun getEntitiesByDate(selectedDate: String): List<Records>
 }
