@@ -14,12 +14,15 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
+import android.widget.ToggleButton
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.internal.zzhu.runOnUiThread
+import com.specknet.pdiotapp.MainActivity
 import com.specknet.pdiotapp.R
 import com.specknet.pdiotapp.database.RecordDao
 import com.specknet.pdiotapp.database.Records
@@ -43,8 +46,9 @@ class PredictFragment : Fragment() {
 
     private lateinit var recordDao: RecordDao
     private lateinit var currentTime: Date
-    private lateinit var previousTime: Date
+    private var previousTime: Date? = null
     private var recordingActivity: String? = null
+    private var isRecording: Boolean = false
 
 
     override fun onCreateView(
@@ -54,7 +58,7 @@ class PredictFragment : Fragment() {
         val rootView = inflater.inflate(R.layout.fragment_predict, container, false)
 
         // Get the database instance
-//        recordDao = MainActivity.database.RecordDao()
+        recordDao = MainActivity.database.RecordDao()
         // 加载模型和其他初始化操作
         val modelByteBuffer = loadModelFile("basicModel1DummyLite.tflite")
         interpreter = Interpreter(modelByteBuffer)
@@ -78,22 +82,33 @@ class PredictFragment : Fragment() {
             }
         })
 
+        val togglePredict = rootView.findViewById<ToggleButton>(R.id.togglePredict)
+        togglePredict.setOnCheckedChangeListener { buttonView, isChecked ->
+            isRecording = isChecked
+            if (isChecked) {
+                Toast.makeText(requireContext(), "Start Record", Toast.LENGTH_SHORT).show()
+            } else {
+                recordActivity(userModel.userName.value!!, previousTime!!, recordingActivity!!)
+                recordingActivity = null
+                previousTime = null
+                Toast.makeText(requireContext(), "Record Finish", Toast.LENGTH_SHORT).show()
+            }
+        }
+
         // 在Fragment中定义LiveData
         val currentActivityLiveData = MutableLiveData<String>()
 
         currentActivityLiveData.observe(viewLifecycleOwner) { newActivity ->
-            if (recordingActivity.isNullOrEmpty()) {
-                recordingActivity = newActivity
-                previousTime = Date()
-                println(recordingActivity)
-            } else {
-                if (recordingActivity != newActivity) {
-                    println(previousTime)
-                    println(recordingActivity)
-//                            recordActivity(previousTime, recordingActivity!!)
+            if (userModel.userName.value != null && isRecording) {
+                if (recordingActivity == null) {
                     recordingActivity = newActivity
                     previousTime = Date()
-                    println(recordingActivity)
+                } else {
+                    if (recordingActivity != newActivity) {
+                        recordActivity(userModel.userName.value!!, previousTime!!, recordingActivity!!)
+                        recordingActivity = newActivity
+                        previousTime = Date()
+                    }
                 }
             }
         }
@@ -193,17 +208,22 @@ class PredictFragment : Fragment() {
         return rootView
     }
 
-    private fun recordActivity(previousTime: Date,currentActivity: String) {
+    private fun recordActivity(userName: String, previousTime: Date,currentActivity: String) {
         // Example: Insert data into the database
+        println("Insert")
         currentTime = Date()
-        val entity = Records(
-            userName = "Example",
-            dateTime = currentTime,
-            activity = currentActivity,
-            duration = calDurationInSeconds(currentTime, previousTime)
+        val duration = calDurationInSeconds(previousTime, currentTime)
+        // adjust granularity
+        if (duration < 1) {
+            val entity = Records(
+                userName = userName,
+                dateTime = currentTime,
+                activity = currentActivity,
+                duration = calDurationInSeconds(previousTime, currentTime)
             )
-        println(entity)
-//        insertData(entity)
+            println(entity)
+            insertData(entity)
+        }
     }
 
     private fun calDurationInSeconds(startDate: Date, endDate: Date): Long {
@@ -248,16 +268,6 @@ class PredictFragment : Fragment() {
     private fun insertData(entity: Records) {
         viewLifecycleOwner.lifecycleScope.launch {
             recordDao.insert(entity)
-            val entities = recordDao.getAllEntities()
-//            println(entities)
-        }
-    }
-
-    private fun queryData() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            val entities = recordDao.getAllEntities()
-//            println(entities)
-            // Handle the list of entities as needed
         }
     }
 

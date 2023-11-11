@@ -37,7 +37,6 @@ package com.specknet.pdiotapp
 
 import android.Manifest
 import android.content.Context
-import androidx.fragment.app.Fragment
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
@@ -47,10 +46,13 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Button
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
+import androidx.lifecycle.ViewModelProvider
 import androidx.room.Room
 import com.google.android.material.snackbar.Snackbar
 import com.specknet.pdiotapp.bluetooth.BluetoothSpeckService
@@ -59,8 +61,10 @@ import com.specknet.pdiotapp.live.LiveDataFragment
 import com.specknet.pdiotapp.onboarding.OnBoardingActivity
 import com.specknet.pdiotapp.predict.PredictFragment
 import com.specknet.pdiotapp.utils.Constants
+import com.specknet.pdiotapp.utils.UserInfoViewModel
 import com.specknet.pdiotapp.utils.Utils
-import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.activity_main.bottomNav
+import kotlinx.android.synthetic.main.activity_main.coordinatorLayout
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
@@ -114,6 +118,9 @@ class MainActivity : AppCompatActivity() {
             startActivity(introIntent)
         }
 
+        // 获取 ViewModel
+        val userModel = ViewModelProvider(this).get(UserInfoViewModel::class.java)
+
         bottomNav.setOnNavigationItemSelectedListener {
             when (it.itemId) {
                 R.id.home -> {
@@ -129,8 +136,14 @@ class MainActivity : AppCompatActivity() {
                     true
                 }
                 R.id.history -> {
-                    loadFragment(HistoryFragment())
-                    true
+                    if (userModel.userName.value != null) {
+                        loadFragment(HistoryFragment())
+                        true
+                    } else {
+                        showToast("Please login first.")
+                        loadFragment(AccountFragment())
+                        false
+                    }
                 }
                 R.id.account -> {
                     loadFragment(AccountFragment())
@@ -183,6 +196,10 @@ class MainActivity : AppCompatActivity() {
         transaction.replace(R.id.container, fragment)
         transaction.addToBackStack(null) // 可选，用于将事务添加到返回栈
         transaction.commit()
+    }
+
+    private fun showToast(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
 
     private fun setupPermissions() {

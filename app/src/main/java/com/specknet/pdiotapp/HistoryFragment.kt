@@ -7,7 +7,10 @@ import android.view.ViewGroup
 import android.widget.ToggleButton
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
+import androidx.lifecycle.lifecycleScope
 import com.github.mikephil.charting.charts.HorizontalBarChart
+import com.specknet.pdiotapp.database.RecordDao
+import kotlinx.coroutines.launch
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -25,12 +28,18 @@ class HistoryFragment : Fragment() {
     private var param2: String? = null
 
     private lateinit var horizontalBarChart: HorizontalBarChart
+    private lateinit var recordDao: RecordDao
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_history, container, false)
+
+        // Get the database instance
+        recordDao = MainActivity.database.RecordDao()
+
+        queryData()
 
         val toggleButton = view.findViewById<ToggleButton>(R.id.toggleButton)
         loadFragment(HistoryDailyFragment())
@@ -48,6 +57,14 @@ class HistoryFragment : Fragment() {
         }
 
         return view
+    }
+
+    private fun queryData() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val entities = recordDao.getAllEntities()
+            println(entities)
+            // Handle the list of entities as needed
+        }
     }
 
     private fun loadFragment(fragment: Fragment) {
