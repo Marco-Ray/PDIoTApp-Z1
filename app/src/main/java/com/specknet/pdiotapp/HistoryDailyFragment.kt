@@ -8,14 +8,20 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.room.Entity
 import com.github.mikephil.charting.charts.HorizontalBarChart
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
+import com.google.android.gms.internal.zzhu.runOnUiThread
+import com.specknet.pdiotapp.database.ActivityTypeDuration
 import com.specknet.pdiotapp.database.RecordDao
+import com.specknet.pdiotapp.database.Records
+import com.specknet.pdiotapp.utils.UserInfoViewModel
 import kotlinx.coroutines.launch
 import org.w3c.dom.Text
 import java.text.SimpleDateFormat
@@ -43,12 +49,17 @@ class HistoryDailyFragment : Fragment() {
     private lateinit var todayDate: String
 
     private lateinit var recordDao: RecordDao
+    private lateinit var recordEntities: List<ActivityTypeDuration>
+    // 获取 ViewModel
+    private val userModel by activityViewModels<UserInfoViewModel>()
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_history_daily, container, false)
 
+        // init start
         // Get the database instance
         recordDao = MainActivity.database.RecordDao()
 
@@ -85,7 +96,7 @@ class HistoryDailyFragment : Fragment() {
             "shuffle walking",
             "running/jogging",
             "miscellaneous movements",
-        ).reversed()
+        )
         xAxis.valueFormatter = IndexAxisValueFormatter(customLabels)
         xAxis.position = XAxis.XAxisPosition.BOTTOM
         // 设置 X 轴的标签间隔为1，强制显示所有标签
@@ -99,48 +110,48 @@ class HistoryDailyFragment : Fragment() {
         leftAxis.axisMinimum = 0f
         rightAxis.axisMinimum = 0f
 
-        // 创建示例数据
-        val entries = ArrayList<BarEntry>()
-        entries.add(BarEntry(0f, 10f))
-        entries.add(BarEntry(1f, 1f))
-        entries.add(BarEntry(2f, 2f))
-        entries.add(BarEntry(3f, 3f))
-        entries.add(BarEntry(4f, 4f))
-        entries.add(BarEntry(5f, 8f))
-        entries.add(BarEntry(6f, 4f))
-        entries.add(BarEntry(7f, 5f))
-        entries.add(BarEntry(8f, 6f))
-        entries.add(BarEntry(9f, 4f))
-        entries.add(BarEntry(10f, 0f))
-        entries.add(BarEntry(11f, 20f))
-
-
-        // 允许 X 轴和 Y 轴自动缩放以适应数据
-//        xAxis.axisMinimum = entries.minByOrNull { it.x }?.x ?: 0f
-//        xAxis.axisMaximum = entries.maxByOrNull { it.x }?.x ?: 1f
-//        leftAxis.axisMinimum = entries.minByOrNull { it.y }?.y ?: 0f
-//        leftAxis.axisMaximum = entries.maxByOrNull { it.y }?.y ?: 1f
-//        rightAxis.axisMinimum = entries.minByOrNull { it.y }?.y ?: 0f
-//        rightAxis.axisMaximum = entries.maxByOrNull { it.y }?.y ?: 1f
-
-        // 创建数据集
-        val dataSet = BarDataSet(entries, "示例数据")
-        dataSet.color = Color.BLUE
-
-        // 创建 BarData 对象并设置数据集
-        val data = BarData(dataSet)
-
-        // 设置数据到图表
-        horizontalBarChart.data = data
-
         return view
     }
 
+    private fun convertToBarEntries(activityTypeDurations: List<ActivityTypeDuration>): List<BarEntry> {
+        val barEntries = mutableListOf<BarEntry>()
+
+        var maxIndex = 0
+        for (activityTypeDuration in activityTypeDurations) {
+            maxIndex = if (activityTypeDuration.activityType > maxIndex) {
+                activityTypeDuration.activityType
+            } else {
+                maxIndex
+            }
+            val barEntry = BarEntry(activityTypeDuration.activityType.toFloat(), activityTypeDuration.totalDuration.toFloat())
+            barEntries.add(barEntry)
+        }
+        if (maxIndex<11) {
+            val barEntry = BarEntry(11f, 0f)
+            barEntries.add(barEntry)
+        }
+
+        return barEntries
+    }
+
+
     private fun queryDailyData(selectedDate: String) {
         viewLifecycleOwner.lifecycleScope.launch {
-            val entities = recordDao.getEntitiesByDate(selectedDate)
+            val entities = recordDao.getTotalDurationByActivityTypeInSelectedDate(userModel.userName.value!!, selectedDate)
             println(entities)
-            // Handle the list of entities as needed
+            // 创建数据集
+            val entries = convertToBarEntries(entities)
+            val dataSet = BarDataSet(entries, "示例数据")
+            dataSet.color = Color.BLUE
+            // 创建 BarData 对象并设置数据集
+            val data = BarData(dataSet)
+            // 设置数据到图表
+            runOnUiThread {
+                horizontalBarChart.data = data
+                horizontalBarChart.invalidate()
+            }
+
+
         }
     }
 

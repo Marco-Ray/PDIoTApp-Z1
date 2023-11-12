@@ -9,6 +9,6 @@ data class Records(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     @ColumnInfo(name = "userName") val userName: String,
     @ColumnInfo(name = "date") val date : String,
-    @ColumnInfo(name = "activityType") val activity : String,
+    @ColumnInfo(name = "activityType") val activity : Int,
     @ColumnInfo(name = "duration") val duration: Long,
 )

@@ -51,7 +51,7 @@ class PredictFragment : Fragment() {
     private lateinit var currentDate: String
     private lateinit var currentTime: Date
     private var previousTime: Date? = null
-    private var recordingActivity: String? = null
+    private var recordingActivityIndex: Int? = null
     private var isRecording: Boolean = false
 
 
@@ -102,8 +102,8 @@ class PredictFragment : Fragment() {
                 if (isChecked) {
                     Toast.makeText(requireContext(), "Start Record", Toast.LENGTH_SHORT).show()
                 } else {
-                    recordActivity(userModel.userName.value!!, previousTime!!, recordingActivity!!)
-                    recordingActivity = null
+                    recordActivity(userModel.userName.value!!, previousTime!!, recordingActivityIndex!!)
+                    recordingActivityIndex = null
                     previousTime = null
                     Toast.makeText(requireContext(), "Record Finish", Toast.LENGTH_SHORT).show()
                 }
@@ -114,17 +114,17 @@ class PredictFragment : Fragment() {
         }
 
         // 在Fragment中定义LiveData
-        val currentActivityLiveData = MutableLiveData<String>()
+        val currentActivityIndexLiveData = MutableLiveData<Int>()
 
-        currentActivityLiveData.observe(viewLifecycleOwner) { newActivity ->
+        currentActivityIndexLiveData.observe(viewLifecycleOwner) { newActivityIndex ->
             if (userModel.userName.value != null && isRecording) {
-                if (recordingActivity == null) {
-                    recordingActivity = newActivity
+                if (recordingActivityIndex == null) {
+                    recordingActivityIndex = newActivityIndex
                     previousTime = Date()
                 } else {
-                    if (recordingActivity != newActivity) {
-                        recordActivity(userModel.userName.value!!, previousTime!!, recordingActivity!!)
-                        recordingActivity = newActivity
+                    if (recordingActivityIndex != newActivityIndex) {
+                        recordActivity(userModel.userName.value!!, previousTime!!, recordingActivityIndex!!)
+                        recordingActivityIndex = newActivityIndex
                         previousTime = Date()
                     }
                 }
@@ -136,17 +136,17 @@ class PredictFragment : Fragment() {
         // TODO -- label map
         val activityMap = mapOf(
             0 to "Sitting",
-            1 to "Standing",
-            2 to "Lying",
-            3 to "3",
-            4 to "4",
-            5 to "5",
-            6 to "6",
-            7 to "7",
-            8 to "8",
-            9 to "9",
-            10 to "10",
-            11 to "11",
+            1 to "standing",
+            2 to "lying down on left side",
+            3 to "lying down on right side",
+            4 to "lying down on stomach",
+            5 to "lying down on back",
+            6 to "normal walking",
+            7 to "ascending stairs",
+            8 to "descending stairs",
+            9 to "shuffle walking",
+            10 to "running/jogging",
+            11 to "miscellaneous movements",
         )
 
         // TODO
@@ -198,7 +198,7 @@ class PredictFragment : Fragment() {
                     val currentActivity = activityMap[currentActivityIndex]
                     val currentActivityImage = activityImgMap[currentActivityIndex]
 
-                    currentActivityLiveData.postValue(currentActivity)
+                    currentActivityIndexLiveData.postValue(currentActivityIndex)
 
 
                     Log.d("Live", "Predicted " + currentActivity + "for" + liveData)
@@ -226,7 +226,7 @@ class PredictFragment : Fragment() {
         return rootView
     }
 
-    private fun recordActivity(userName: String, previousTime: Date,currentActivity: String) {
+    private fun recordActivity(userName: String, previousTime: Date,currentActivityIndex: Int) {
         // Example: Insert data into the database
         println("Insert")
         currentTime = Date()
@@ -236,7 +236,7 @@ class PredictFragment : Fragment() {
             val entity = Records(
                 userName = userName,
                 date = currentDate,
-                activity = currentActivity,
+                activity = currentActivityIndex,
                 duration = calDurationInSeconds(previousTime, currentTime)
             )
             println(entity)
