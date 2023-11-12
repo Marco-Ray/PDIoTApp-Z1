@@ -18,9 +18,8 @@ interface RecordDao {
             "GROUP BY activityType ")
     suspend fun getTotalDurationByActivityTypeInSelectedDate(userName: String, selectedDate: String): List<ActivityTypeDuration>
 
-    @Query("SELECT * FROM Records WHERE date = :selectedDate")
-    suspend fun getEntitiesByDate(selectedDate: String): List<Records>
-
-    @Query("SELECT * FROM Records WHERE date >= :startDate and date <= :endDate")
-    suspend fun getEntitiesByDateRange(startDate: String, endDate: String): List<Records>
+    @Query("SELECT strftime('%w', date) as dayOfWeek, activityType, SUM(duration) as totalDuration FROM Records " +
+            "WHERE date >= :startDate and date <= :endDate and userName = :userName " +
+            "GROUP BY dayOfWeek, activityType")
+    suspend fun getTotalDurationByDayOfWeekInDateRange(userName: String, startDate: String, endDate: String): List<DayOfWeekDuration>
 }

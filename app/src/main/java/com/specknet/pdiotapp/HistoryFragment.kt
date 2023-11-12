@@ -1,5 +1,6 @@
 package com.specknet.pdiotapp
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -10,6 +11,7 @@ import androidx.fragment.app.FragmentTransaction
 import androidx.lifecycle.lifecycleScope
 import com.github.mikephil.charting.charts.HorizontalBarChart
 import com.specknet.pdiotapp.database.RecordDao
+import com.specknet.pdiotapp.database.RecordDatabase
 import kotlinx.coroutines.launch
 
 // TODO: Rename parameter arguments, choose names that match
@@ -51,6 +53,23 @@ class HistoryFragment : Fragment() {
             }
         }
 
+        colorClassArray = generateColorList(12)
+
+        customLabels = arrayOf(
+            "Sitting",
+            "standing",
+            "lying down on left side",
+            "lying down on right side",
+            "lying down on stomach",
+            "lying down on back",
+            "normal walking",
+            "ascending stairs",
+            "descending stairs",
+            "shuffle walking",
+            "running/jogging",
+            "miscellaneous movements",
+        )
+
         return view
     }
 
@@ -61,8 +80,24 @@ class HistoryFragment : Fragment() {
         transaction.commit()
     }
 
-    companion object {
+    fun generateColorList(num: Int): List<Int> {
+        val colorList = mutableListOf<Int>()
 
+        // 生成12种颜色
+        for (i in 0 until num) {
+            val hue = (i * 30) % 360  // 通过改变hue值生成不同的颜色
+            val color = Color.HSVToColor(floatArrayOf(hue.toFloat(), 1f, 1f))
+            colorList.add(color)
+        }
+
+        return colorList
+    }
+
+    companion object {
+        lateinit var colorClassArray: List<Int>
+            private set
+        lateinit var customLabels: Array<String>
+            private set
         /**
          * Use this factory method to create a new instance of
          * this fragment using the provided parameters.

@@ -8,12 +8,22 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
 import com.github.mikephil.charting.charts.HorizontalBarChart
+import com.github.mikephil.charting.components.Legend
+import com.github.mikephil.charting.components.LegendEntry
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
+import com.google.android.gms.internal.zzhu
+import com.specknet.pdiotapp.database.ActivityTypeDuration
+import com.specknet.pdiotapp.database.DayOfWeekDuration
+import com.specknet.pdiotapp.database.RecordDao
+import com.specknet.pdiotapp.utils.UserInfoViewModel
+import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -37,19 +47,40 @@ class HistoryWeeklyFragment : Fragment() {
     private lateinit var horizontalBarChart: HorizontalBarChart
     private lateinit var firstDateView: TextView
     private lateinit var secondDateView: TextView
-    private var fromDate: Date? = null
-    private var toDate: Date? = null
+    private lateinit var fromDate: Date
+    private lateinit var toDate: Date
+
+    private lateinit var recordDao: RecordDao
+    // 获取 ViewModel
+    private val userModel by activityViewModels<UserInfoViewModel>()
+    private lateinit var colorClassArray: List<Int>
+    private lateinit var customLabels: Array<String>
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_history_weekly, container, false)
+
+        // init start
+        // Get the database instance
+        recordDao = MainActivity.database.RecordDao()
+        colorClassArray = HistoryFragment.colorClassArray
+        customLabels = HistoryFragment.customLabels
+
         horizontalBarChart = view.findViewById(R.id.hBarChartWeekly)
         // 配置水平堆叠的条形图
         configureHorizontalBarChart()
 
         firstDateView = view.findViewById(R.id.firstDate)
+        secondDateView = view.findViewById(R.id.secondDate)
+
+        toDate = Date()
+        fromDate = addDaysToDate(toDate, -7)
+        queryWeeklyData(formatDateToString(fromDate), formatDateToString(toDate))
+        firstDateView.text = formatDateToString(fromDate)
+        secondDateView.text = formatDateToString(toDate)
+
         firstDateView.setOnClickListener {
             showDatePickerDialog { selectedDate ->
                 fromDate = selectedDate
@@ -58,11 +89,11 @@ class HistoryWeeklyFragment : Fragment() {
                     secondDateView.text = formatDateToString(toDate!!)
                 }
                 firstDateView.text = formatDateToString(fromDate!!)
+                queryWeeklyData(formatDateToString(fromDate), formatDateToString(toDate))
 
             }
         }
 
-        secondDateView = view.findViewById(R.id.secondDate)
         secondDateView.setOnClickListener {
             showDatePickerDialog { selectedDate ->
                 toDate = selectedDate
@@ -71,45 +102,79 @@ class HistoryWeeklyFragment : Fragment() {
                     firstDateView.text = formatDateToString(fromDate!!)
                 }
                 secondDateView.text = formatDateToString(toDate!!)
+                queryWeeklyData(formatDateToString(fromDate), formatDateToString(toDate))
             }
         }
 
-        // 创建示例数据
-        val entries1 = ArrayList<BarEntry>()
-        entries1.add(BarEntry(0f, floatArrayOf(5f, 15f, 20f)))
-        entries1.add(BarEntry(1f, floatArrayOf(5f, 15f, 20f)))
-        entries1.add(BarEntry(2f, floatArrayOf(5f, 20f, 1f)))
-        entries1.add(BarEntry(3f, floatArrayOf(5f, 15f, 20f)))
-        entries1.add(BarEntry(4f, floatArrayOf(5f, 3f, 10f)))
-        entries1.add(BarEntry(5f, floatArrayOf(5f, 2f, 10f)))
-        entries1.add(BarEntry(6f, floatArrayOf(5f, 15f, 20f)))
+//        // 创建示例数据
+//        val entries1 = ArrayList<BarEntry>()
+//        entries1.add(BarEntry(0f, floatArrayOf(5f, 15f, 20f)))
+//        entries1.add(BarEntry(1f, floatArrayOf(5f, 15f, 20f)))
+//        entries1.add(BarEntry(2f, floatArrayOf(5f, 20f, 1f)))
+//        entries1.add(BarEntry(3f, floatArrayOf(5f, 15f, 20f)))
+//        entries1.add(BarEntry(4f, floatArrayOf(5f, 3f, 10f)))
+//        entries1.add(BarEntry(5f, floatArrayOf(5f, 2f, 10f)))
+//        entries1.add(BarEntry(6f, floatArrayOf(5f, 15f, 20f)))
 
-
-        // 创建数据集
-        val dataSet1 = BarDataSet(entries1, "数据集 1")
-        val colorClassArray = listOf<Int>(Color.BLUE, Color.CYAN, Color.RED)
-        dataSet1.colors = colorClassArray
-
-        // 创建 BarData 对象并设置数据集
-        val data = BarData(dataSet1)
+//
+//        // 创建数据集
+//        val dataSet1 = BarDataSet(entries1, "数据集 1")
+//        val colorClassArray = listOf<Int>(Color.BLUE, Color.CYAN, Color.RED)
+//        dataSet1.colors = colorClassArray
+//
+//        // 创建 BarData 对象并设置数据集
+//        val data = BarData(dataSet1)
 
         // 设置数据到图表
-        horizontalBarChart.data = data
+//        horizontalBarChart.data = data
 
         return view
     }
 
+    private fun convertToBarEntries(dayOfWeekDurations: List<DayOfWeekDuration>): List<BarEntry> {
+        val barEntries = mutableListOf<BarEntry>()
+
+        for (dayOfWeek in (0..6).toList()) {
+            val subset = dayOfWeekDurations.filter { it.dayOfWeek == dayOfWeek }
+            val floatArray = FloatArray(12)
+            for (activity in subset) {
+                floatArray[activity.activityType] = activity.totalDuration.toFloat()
+            }
+            val barEntry = BarEntry(dayOfWeek.toFloat(), floatArray)
+            barEntries.add(barEntry)
+        }
+        return barEntries
+    }
+
+    private fun queryWeeklyData(startDate: String, endDate: String) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val entities = recordDao.getTotalDurationByDayOfWeekInDateRange(userModel.userName.value!!, startDate, endDate)
+            println(entities)
+            // 创建数据集
+            val entries = convertToBarEntries(entities)
+            val dataSet = BarDataSet(entries, "示例数据")
+            dataSet.colors = colorClassArray
+            // 创建 BarData 对象并设置数据集
+            val data = BarData(dataSet)
+            // 设置数据到图表
+            zzhu.runOnUiThread {
+                horizontalBarChart.data = data
+                horizontalBarChart.invalidate()
+            }
+        }
+    }
+
     private fun configureHorizontalBarChart() {
         // 自定义 X 轴标签
-        val customLabels = arrayOf(
+        val weekdayLabels = arrayOf(
+            "Sunday",
             "Monday",
             "Tuesday",
             "Wednesday",
             "Thursday",
             "Friday",
             "Saturday",
-            "Sunday",
-        ).reversed()
+        )
 
         // 配置水平堆叠的条形图
         horizontalBarChart.setDrawBarShadow(false)
@@ -125,16 +190,29 @@ class HistoryWeeklyFragment : Fragment() {
         xAxis.axisMinimum = 0f
         xAxis.labelCount = customLabels.size
 
-        xAxis.valueFormatter = IndexAxisValueFormatter(customLabels)
+        xAxis.valueFormatter = IndexAxisValueFormatter(weekdayLabels)
 
         val leftAxis = horizontalBarChart.axisLeft
         leftAxis.axisMinimum = 0f
 
         val rightAxis = horizontalBarChart.axisRight
         rightAxis.axisMinimum = 0f
+
+        // 配置 Legend
+        val legend: Legend = horizontalBarChart.legend
+        legend.isWordWrapEnabled = true
+        val legendEntries = mutableListOf<LegendEntry>()
+        for ((color, label) in colorClassArray.zip(customLabels)) {
+            legendEntries.add(LegendEntry(label, Legend.LegendForm.SQUARE, 8f, 8f, null, color))
+        }
+        // 设置自定义的 LegendEntry 列表
+        legend.setCustom(legendEntries)
+
+
+
     }
 
-    fun formatDateToString(date: Date?): String {
+    private fun formatDateToString(date: Date?): String {
         date?.let {
             val format = SimpleDateFormat("yyyy-MM-dd")
             return format.format(it)
