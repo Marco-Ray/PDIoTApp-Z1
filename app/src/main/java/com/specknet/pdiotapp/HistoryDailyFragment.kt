@@ -1,7 +1,6 @@
 package com.specknet.pdiotapp
 
 import android.app.DatePickerDialog
-import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -21,6 +20,7 @@ import com.google.android.gms.internal.zzhu.runOnUiThread
 import com.specknet.pdiotapp.database.ActivityTypeDuration
 import com.specknet.pdiotapp.database.RecordDao
 import com.specknet.pdiotapp.utils.UserInfoViewModel
+import kotlinx.android.synthetic.main.fragment_history.history_container
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -50,13 +50,18 @@ class HistoryDailyFragment : Fragment() {
     // 获取 ViewModel
     private val userModel by activityViewModels<UserInfoViewModel>()
     private lateinit var colorClassArray: List<Int>
-    private lateinit var customLabels: Array<String>
+    private lateinit var taskLabels: Array<String>
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_history_daily, container, false)
+
+
+        HistoryFragment.currentTask.observe(viewLifecycleOwner) { newTask ->
+            println(newTask)
+        }
 
         // init start
         // Get the database instance
@@ -83,13 +88,13 @@ class HistoryDailyFragment : Fragment() {
         val xAxis = horizontalBarChart.xAxis
 
         // 自定义 X 轴标签
-        customLabels = HistoryFragment.customLabels
-        xAxis.valueFormatter = IndexAxisValueFormatter(customLabels)
+        taskLabels = HistoryFragment.taskLabels
+        xAxis.valueFormatter = IndexAxisValueFormatter(taskLabels)
         xAxis.position = XAxis.XAxisPosition.BOTTOM
         // 设置 X 轴的标签间隔为1，强制显示所有标签
         xAxis.isGranularityEnabled = true
         xAxis.granularity = 1f
-        xAxis.labelCount = customLabels.size;
+        xAxis.labelCount = taskLabels.size;
 
         // 自定义 Y 轴
         val leftAxis = horizontalBarChart.axisLeft
@@ -117,7 +122,7 @@ class HistoryDailyFragment : Fragment() {
 
     private fun queryDailyData(selectedDate: String) {
         viewLifecycleOwner.lifecycleScope.launch {
-            val entities = recordDao.getTotalDurationByActivityTypeInSelectedDate(userModel.userName.value!!, selectedDate)
+            val entities = recordDao.getTotalDurationByActivityTypeInSelectedDate(userModel.userName.value!!, HistoryFragment.currentTask.value!!, selectedDate)
             println(entities)
             // 创建数据集
             val entries = convertToBarEntries(entities)
@@ -185,5 +190,15 @@ class HistoryDailyFragment : Fragment() {
                     putString(ARG_PARAM2, param2)
                 }
             }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        horizontalBarChart.clear()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        horizontalBarChart.clear()
     }
 }

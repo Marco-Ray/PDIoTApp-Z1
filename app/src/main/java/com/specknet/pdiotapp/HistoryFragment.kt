@@ -5,14 +5,15 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.Spinner
 import android.widget.ToggleButton
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
-import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.MutableLiveData
 import com.github.mikephil.charting.charts.HorizontalBarChart
-import com.specknet.pdiotapp.database.RecordDao
-import com.specknet.pdiotapp.database.RecordDatabase
-import kotlinx.coroutines.launch
+import java.util.Date
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -38,6 +39,26 @@ class HistoryFragment : Fragment() {
     ): View? {
         val view = inflater.inflate(R.layout.fragment_history, container, false)
 
+        val spinner = view.findViewById<Spinner>(R.id.spinner)
+        // 创建一个适配器（可以使用 ArrayAdapter、CursorAdapter 等）
+        val taskList = listOf("Task1", "Task2", "Task3")
+        val adapter = ArrayAdapter<String>(requireContext(), android.R.layout.simple_spinner_item, taskList)
+        // 设置适配器
+        spinner.adapter = adapter
+        // 设置选择监听器
+        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                // 处理选择项的操作
+                currentTask.postValue(position)
+                val selectedItem = taskList[position]
+                // 在这里执行相应的操作
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                // 当没有选项被选中时的处理
+            }
+        }
+
         val toggleButton = view.findViewById<ToggleButton>(R.id.toggleButton)
         loadFragment(HistoryDailyFragment())
 
@@ -53,22 +74,45 @@ class HistoryFragment : Fragment() {
             }
         }
 
-        colorClassArray = generateColorList(12)
+        colorClassArray = generateColorList(if (currentTask.value == 0) {12} else {15})
 
-        customLabels = arrayOf(
-            "Sitting",
-            "standing",
-            "lying down on left side",
-            "lying down on right side",
-            "lying down on stomach",
-            "lying down on back",
-            "normal walking",
-            "ascending stairs",
-            "descending stairs",
-            "shuffle walking",
-            "running/jogging",
-            "miscellaneous movements",
+        task1Labels = arrayOf(
+            "sitting/standing",
+            "lyingLeft",
+            "lyingRight",
+            "lyingStomach",
+            "lyingBack",
+            "normalWalking",
+            "running",
+            "shuffleWalking",
+            "ascending",
+            "descending",
+            "miscMovement",
         )
+
+        task2Labels = arrayOf(
+            "sitting/standing + normalBreath",
+            "lyingLeft + normalBreath",
+            "lyingRight + normalBreath",
+            "lyingBack + normalBreath",
+            "lyingStomach + normalBreath",
+            "sitting/standing + coughing",
+            "lyingLeft + coughing",
+            "lyingRight + coughing",
+            "lyingBack + coughing",
+            "lyingStomach + coughing",
+            "sitting/standing + hyperventilating",
+            "lyingLeft + hyperventilating",
+            "lyingRight + hyperventilating",
+            "lyingBack + hyperventilating",
+            "lyingStomach + hyperventilating",
+        )
+
+        taskLabels = if (currentTask.value == 0) {
+            task1Labels
+        } else {
+            task2Labels
+        }
 
         return view
     }
@@ -96,7 +140,13 @@ class HistoryFragment : Fragment() {
     companion object {
         lateinit var colorClassArray: List<Int>
             private set
-        lateinit var customLabels: Array<String>
+        lateinit var task1Labels: Array<String>
+            private set
+        lateinit var task2Labels: Array<String>
+            private set
+        lateinit var taskLabels: Array<String>
+            private set
+        lateinit var currentTask: MutableLiveData<Int>
             private set
         /**
          * Use this factory method to create a new instance of

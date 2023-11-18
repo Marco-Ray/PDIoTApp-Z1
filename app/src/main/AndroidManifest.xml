@@ -2,8 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.specknet.pdiotapp">
 
-    <uses-permission android:name="android.permission.BLUETOOTH" />
-    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" /> <!-- To make app available to BLE-capable devices only -->
     <uses-permission android:name="android.permission.CAMERA" />
@@ -24,14 +25,19 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <service
-            android:name=".bluetooth.BluetoothSpeckService"
-            android:enabled="true"
-            android:exported="true"></service>
-
         <activity
-            android:name=".live.LiveDataActivity"
-            android:screenOrientation="portrait">
+            android:name=".barcode.BarcodeActivity"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".bluetooth.ConnectingActivity"
+            android:screenOrientation="portrait"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.specknet.pdiotapp.RESPECK_CONNECTED" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.specknet.pdiotapp.RESPECK_DISCONNECTED" />
+            </intent-filter>
             <intent-filter>
                 <action android:name="com.specknet.respeck.RESPECK_LIVE_BROADCAST" />
             </intent-filter>
@@ -48,26 +54,13 @@
                 <action android:name="com.specknet.pdiotapp.RESPECK_BROADCAST" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".barcode.BarcodeActivity"
-            android:screenOrientation="portrait" />
-        <activity
-            android:name=".bluetooth.ConnectingActivity"
-            android:screenOrientation="portrait">
-            <intent-filter>
-                <action android:name="com.specknet.pdiotapp.RESPECK_CONNECTED" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="com.specknet.pdiotapp.RESPECK_DISCONNECTED" />
-            </intent-filter>
-        </activity>
 <!--        <activity-->
 <!--            android:name=".predict.PredictingActivity"-->
 <!--            android:screenOrientation="portrait"/>-->
 
 
         <service
-            android:name=".bluetooth.BluetoothService"
+            android:name=".bluetooth.BluetoothSpeckService"
             android:enabled="true"
             android:exported="true">
             <intent-filter>
@@ -83,7 +76,8 @@
             android:screenOrientation="portrait" />
         <activity
             android:name=".MainActivity"
-            android:screenOrientation="portrait">
+            android:screenOrientation="portrait"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

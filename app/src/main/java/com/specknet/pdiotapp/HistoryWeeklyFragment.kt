@@ -1,7 +1,6 @@
 package com.specknet.pdiotapp
 
 import android.app.DatePickerDialog
-import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -19,15 +18,13 @@ import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.google.android.gms.internal.zzhu
-import com.specknet.pdiotapp.database.ActivityTypeDuration
 import com.specknet.pdiotapp.database.DayOfWeekDuration
 import com.specknet.pdiotapp.database.RecordDao
 import com.specknet.pdiotapp.utils.UserInfoViewModel
 import kotlinx.coroutines.launch
-import java.util.Calendar
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
-import java.util.Locale
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -66,7 +63,7 @@ class HistoryWeeklyFragment : Fragment() {
         // Get the database instance
         recordDao = MainActivity.database.RecordDao()
         colorClassArray = HistoryFragment.colorClassArray
-        customLabels = HistoryFragment.customLabels
+        customLabels = HistoryFragment.task1Labels
 
         horizontalBarChart = view.findViewById(R.id.hBarChartWeekly)
         // 配置水平堆叠的条形图
@@ -106,28 +103,6 @@ class HistoryWeeklyFragment : Fragment() {
             }
         }
 
-//        // 创建示例数据
-//        val entries1 = ArrayList<BarEntry>()
-//        entries1.add(BarEntry(0f, floatArrayOf(5f, 15f, 20f)))
-//        entries1.add(BarEntry(1f, floatArrayOf(5f, 15f, 20f)))
-//        entries1.add(BarEntry(2f, floatArrayOf(5f, 20f, 1f)))
-//        entries1.add(BarEntry(3f, floatArrayOf(5f, 15f, 20f)))
-//        entries1.add(BarEntry(4f, floatArrayOf(5f, 3f, 10f)))
-//        entries1.add(BarEntry(5f, floatArrayOf(5f, 2f, 10f)))
-//        entries1.add(BarEntry(6f, floatArrayOf(5f, 15f, 20f)))
-
-//
-//        // 创建数据集
-//        val dataSet1 = BarDataSet(entries1, "数据集 1")
-//        val colorClassArray = listOf<Int>(Color.BLUE, Color.CYAN, Color.RED)
-//        dataSet1.colors = colorClassArray
-//
-//        // 创建 BarData 对象并设置数据集
-//        val data = BarData(dataSet1)
-
-        // 设置数据到图表
-//        horizontalBarChart.data = data
-
         return view
     }
 
@@ -148,7 +123,7 @@ class HistoryWeeklyFragment : Fragment() {
 
     private fun queryWeeklyData(startDate: String, endDate: String) {
         viewLifecycleOwner.lifecycleScope.launch {
-            val entities = recordDao.getTotalDurationByDayOfWeekInDateRange(userModel.userName.value!!, startDate, endDate)
+            val entities = recordDao.getTotalDurationByDayOfWeekInDateRange(userModel.userName.value!!, HistoryFragment.currentTask.value!!, startDate, endDate)
             println(entities)
             // 创建数据集
             val entries = convertToBarEntries(entities)
@@ -276,5 +251,15 @@ class HistoryWeeklyFragment : Fragment() {
                     putString(ARG_PARAM2, param2)
                 }
             }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        horizontalBarChart.clear()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        horizontalBarChart.clear()
     }
 }

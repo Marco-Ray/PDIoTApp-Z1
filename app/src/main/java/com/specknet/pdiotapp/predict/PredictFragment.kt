@@ -12,7 +12,10 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.ImageView
+import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import android.widget.ToggleButton
@@ -38,11 +41,25 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+import org.jtransforms.fft.DoubleFFT_1D
+import kotlin.math.sqrt
 
 class PredictFragment : Fragment() {
-    private lateinit var interpreter: Interpreter
-    private var inputDataBuff = Array(1) { FloatArray(75) { 0f } }
-    private var outputDataBuff = Array(1) { FloatArray(12) { 0f } }
+    private var interpreter11: Interpreter? = null
+    private var interpreter12: Interpreter? = null
+    private var interpreter13: Interpreter? = null
+    private var interpreter2: Interpreter? = null
+    private var rawInputDataBuff = Array(1) { FloatArray(300) { 0f } }
+    private var accXInputDataBuff = List<Double>(50) { 0.0 }
+    private var accYInputDataBuff = List<Double>(50) { 0.0 }
+    private var accZInputDataBuff = List<Double>(50) { 0.0 }
+    private var gyroXInputDataBuff = List<Double>(50) { 0.0 }
+    private var gyroYInputDataBuff = List<Double>(50) { 0.0 }
+    private var gyroZInputDataBuff = List<Double>(50) { 0.0 }
+    private var binaryOutputDataBuff = Array(1) { FloatArray(2) { 0f } }
+    private var stationOutputDataBuff = Array(1) { FloatArray(5) { 0f } }
+    private var nonStationOutputDataBuff =  Array(1) { FloatArray(6) { 0f } }
+    private var task2OutputDataBuff =  Array(1) { FloatArray(15) { 0f } }
     lateinit var looperRespeck: Looper
     private lateinit var respeckLiveUpdateReceiver: BroadcastReceiver
     val filterTestRespeck = IntentFilter(Constants.ACTION_RESPECK_LIVE_BROADCAST)
@@ -53,7 +70,57 @@ class PredictFragment : Fragment() {
     private var previousTime: Date? = null
     private var recordingActivityIndex: Int? = null
     private var isRecording: Boolean = false
+    private var counter: Int = 0
+    private var currentTask: Int = 0
+    private var currentActivity: String = "Unknown"
+    private var currentActivityImage: Int = R.drawable.unknown
 
+    // Labels
+    private val task1Map = mapOf(
+        0 to "sitting/standing",
+        1 to "lyingLeft",
+        2 to "lyingRight",
+        3 to "lyingStomach",
+        4 to "lyingBack",
+        5 to "normalWalking",
+        6 to "running",
+        7 to "shuffleWalking",
+        8 to "ascending",
+        9 to "descending",
+        10 to "miscMovement",
+    )
+    // TODO
+    private val task1ImgMap = mapOf(
+        0 to R.drawable.sitting,
+        1 to R.drawable.standing,
+        2 to R.drawable.lying,
+        3 to R.drawable.sitting,
+        4 to R.drawable.sitting,
+        5 to R.drawable.sitting,
+        6 to R.drawable.sitting,
+        7 to R.drawable.sitting,
+        8 to R.drawable.sitting,
+        9 to R.drawable.sitting,
+        10 to R.drawable.sitting,
+        11 to R.drawable.sitting,
+    )
+    private val task2Map = mapOf(
+        0 to "sitting/standing + normalBreath",
+        1 to "lyingLeft + normalBreath",
+        2 to "lyingRight + normalBreath",
+        3 to "lyingBack + normalBreath",
+        4 to "lyingStomach + normalBreath",
+        5 to "sitting/standing + coughing",
+        6 to "lyingLeft + coughing",
+        7 to "lyingRight + coughing",
+        8 to "lyingBack + coughing",
+        9 to "lyingStomach + coughing",
+        10 to "sitting/standing + hyperventilating",
+        11 to "lyingLeft + hyperventilating",
+        12 to "lyingRight + hyperventilating",
+        13 to "lyingBack + hyperventilating",
+        14 to "lyingStomach + hyperventilating",
+    )
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -65,9 +132,7 @@ class PredictFragment : Fragment() {
 
         // Get the database instance
         recordDao = MainActivity.database.RecordDao()
-        // 加载模型和其他初始化操作
-        val modelByteBuffer = loadModelFile("basicModel1DummyLite.tflite")
-        interpreter = Interpreter(modelByteBuffer)
+        loadPredictTask()
 
         // Example: Query data from the database
 //        queryData()
@@ -90,7 +155,30 @@ class PredictFragment : Fragment() {
             }
         })
 
+        val spinner = rootView.findViewById<Spinner>(R.id.spinner)
+        // 创建一个适配器（可以使用 ArrayAdapter、CursorAdapter 等）
+        val taskList = listOf("Task1", "Task2", "Task3")
+        val adapter = ArrayAdapter<String>(requireContext(), android.R.layout.simple_spinner_item, taskList)
+        // 设置适配器
+        spinner.adapter = adapter
+        // 设置选择监听器
+        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                // 处理选择项的操作
+                currentTask = position
+                val selectedItem = taskList[position]
+                // 在这里执行相应的操作
+                interpreter11?.close()
+                interpreter12?.close()
+                interpreter13?.close()
+                interpreter2?.close()
+                loadPredictTask()
+            }
 
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                // 当没有选项被选中时的处理
+            }
+        }
 
         val togglePredict = rootView.findViewById<ToggleButton>(R.id.togglePredict)
         togglePredict.isEnabled = false
@@ -102,7 +190,12 @@ class PredictFragment : Fragment() {
                 if (isChecked) {
                     Toast.makeText(requireContext(), "Start Record", Toast.LENGTH_SHORT).show()
                 } else {
-                    recordActivity(userModel.userName.value!!, previousTime!!, recordingActivityIndex!!)
+                    recordActivity(
+                        userName = userModel.userName.value!!,
+                        previousTime = previousTime!!,
+                        currentActivityIndex = recordingActivityIndex!!,
+                        task = currentTask
+                    )
                     recordingActivityIndex = null
                     previousTime = null
                     Toast.makeText(requireContext(), "Record Finish", Toast.LENGTH_SHORT).show()
@@ -123,47 +216,18 @@ class PredictFragment : Fragment() {
                     previousTime = Date()
                 } else {
                     if (recordingActivityIndex != newActivityIndex) {
-                        recordActivity(userModel.userName.value!!, previousTime!!, recordingActivityIndex!!)
+                        recordActivity(
+                            userName = userModel.userName.value!!,
+                            previousTime = previousTime!!,
+                            currentActivityIndex = recordingActivityIndex!!,
+                            task = currentTask
+                        )
                         recordingActivityIndex = newActivityIndex
                         previousTime = Date()
                     }
                 }
             }
         }
-
-// ...
-
-        // TODO -- label map
-        val activityMap = mapOf(
-            0 to "Sitting",
-            1 to "standing",
-            2 to "lying down on left side",
-            3 to "lying down on right side",
-            4 to "lying down on stomach",
-            5 to "lying down on back",
-            6 to "normal walking",
-            7 to "ascending stairs",
-            8 to "descending stairs",
-            9 to "shuffle walking",
-            10 to "running/jogging",
-            11 to "miscellaneous movements",
-        )
-
-        // TODO
-        val activityImgMap = mapOf(
-            0 to R.drawable.sitting,
-            1 to R.drawable.standing,
-            2 to R.drawable.lying,
-            3 to R.drawable.sitting,
-            4 to R.drawable.sitting,
-            5 to R.drawable.sitting,
-            6 to R.drawable.sitting,
-            7 to R.drawable.sitting,
-            8 to R.drawable.sitting,
-            9 to R.drawable.sitting,
-            10 to R.drawable.sitting,
-            11 to R.drawable.sitting,
-        )
 
         // 示例：获取 TextView 并设置文本
         val textView = rootView.findViewById<TextView>(R.id.predicted_activity)
@@ -189,23 +253,20 @@ class PredictFragment : Fragment() {
                         intent.getSerializableExtra(Constants.RESPECK_LIVE_DATA) as RESpeckLiveData
                     Log.d("Live", "onReceive: liveData = " + liveData)
 
-                    // get all relevant intent contents
-                    val x = liveData.accelX
-                    val y = liveData.accelY
-                    val z = liveData.accelZ
-
-                    val currentActivityIndex = predict(x,y,z)
-                    val currentActivity = activityMap[currentActivityIndex]
-                    val currentActivityImage = activityImgMap[currentActivityIndex]
-
-                    currentActivityIndexLiveData.postValue(currentActivityIndex)
+                    updateBuffer(liveData)
+                    if (counter % 10 == 0) {
+                        counter = 0
+                        val currentActivityIndex = predictTask()
+                        currentActivityIndexLiveData.postValue(currentActivityIndex)
+                    }
+                    counter += 1
 
 
                     Log.d("Live", "Predicted " + currentActivity + "for" + liveData)
                     runOnUiThread {
                         textView.text = "$currentActivity"
-                        // Set the new image resource
-                        imageView.setImageResource(currentActivityImage as Int)
+//                         Set the new image resource
+                        imageView.setImageResource(currentActivityImage)
                     }
                 }
             }
@@ -226,7 +287,46 @@ class PredictFragment : Fragment() {
         return rootView
     }
 
-    private fun recordActivity(userName: String, previousTime: Date,currentActivityIndex: Int) {
+    private fun loadPredictTask() {
+        if (currentTask == 0) {
+            // 加载模型和其他初始化操作 for task1
+            var modelByteBuffer = loadModelFile("StationaryNonStationaryBinaryModelLite.tflite")
+            interpreter11 = Interpreter(modelByteBuffer)
+            modelByteBuffer = loadModelFile("StationaryModelLite.tflite")
+            interpreter12 = Interpreter(modelByteBuffer)
+            modelByteBuffer = loadModelFile("NonStationaryModelLite.tflite")
+            interpreter13 = Interpreter(modelByteBuffer)
+        } else if (currentTask == 1) {
+            // 加载模型和其他初始化操作 for task2
+            var modelByteBuffer = loadModelFile("15ClassModelTask2Lite.tflite")
+            interpreter2 = Interpreter(modelByteBuffer)
+        }
+    }
+
+    private fun predictTask(): Int {
+        var currentActivityIndex = 0
+        if (currentTask == 0) {
+            val isStation = predictStationOrNonstation()
+            currentActivityIndex = if (isStation == 0) {
+                predictStation()
+            } else {
+                val fftData = getFFTData()
+                predictNonstation(fftData)
+            }
+            currentActivity = task1Map[currentActivityIndex]!!
+            currentActivityImage = task1ImgMap[currentActivityIndex]!!
+        } else if (currentTask == 1) {
+            val fftData = getFFTData()
+            currentActivityIndex = predictTask2(fftData)
+
+            currentActivity = task2Map[currentActivityIndex]!!
+            // TODO
+            currentActivityImage = R.drawable.unknown
+        }
+        return currentActivityIndex
+    }
+
+    private fun recordActivity(userName: String, previousTime: Date,currentActivityIndex: Int, task: Int) {
         // Example: Insert data into the database
         println("Insert")
         currentTime = Date()
@@ -236,6 +336,7 @@ class PredictFragment : Fragment() {
             val entity = Records(
                 userName = userName,
                 date = currentDate,
+                task = task,
                 activity = currentActivityIndex,
                 duration = calDurationInSeconds(previousTime, currentTime)
             )
@@ -269,24 +370,93 @@ class PredictFragment : Fragment() {
         return modelByteBuffer
     }
 
-    private fun predict(x: Float, y: Float, z: Float): Int? {
-        inputDataBuff[0][0] = 1f
-        inputDataBuff[0][1] = 2f
-        inputDataBuff[0][2] = 3f
-        inputDataBuff[0] = inputDataBuff[0].drop(3).toFloatArray() // drop first 3 elements (oldest reading)
-        inputDataBuff[0] = inputDataBuff[0] + x + y + z
+    private fun updateBuffer(liveData: RESpeckLiveData) {
+        // get all relevant intent contents
+        val a_x = liveData.accelX
+        val a_y = liveData.accelY
+        val a_z = liveData.accelZ
+        val g_x = liveData.gyro.x
+        val g_y = liveData.gyro.y
+        val g_z = liveData.gyro.z
 
-        interpreter.run(inputDataBuff, outputDataBuff)
+        rawInputDataBuff[0] = rawInputDataBuff[0].drop(6).toFloatArray() // drop first 6 elements (oldest reading)
+        rawInputDataBuff[0] = rawInputDataBuff[0] + a_x + a_y + a_z + g_x + g_y + g_z
+
+        accXInputDataBuff = accXInputDataBuff.drop(1).plus(a_x.toDouble())
+        accYInputDataBuff = accYInputDataBuff.drop(1).plus(a_y.toDouble())
+        accZInputDataBuff = accZInputDataBuff.drop(1).plus(a_z.toDouble())
+        gyroXInputDataBuff = gyroXInputDataBuff.drop(1).plus(g_x.toDouble())
+        gyroYInputDataBuff = gyroYInputDataBuff.drop(1).plus(g_y.toDouble())
+        gyroZInputDataBuff = gyroZInputDataBuff.drop(1).plus(g_z.toDouble())
+    }
+
+    private fun predictStationOrNonstation(): Int {
+
+        interpreter11?.run(rawInputDataBuff, binaryOutputDataBuff)
 
         var maxIndex = 0
-        var maxValue = outputDataBuff[0][0]
+        var maxValue = binaryOutputDataBuff[0][0]
 
-        for (i in 1 until outputDataBuff[0].size) {
-            if (outputDataBuff[0][i] > maxValue) {
-                maxValue = outputDataBuff[0][i]
+        for (i in 1 until binaryOutputDataBuff[0].size) {
+            if (binaryOutputDataBuff[0][i] > maxValue) {
+                maxValue = binaryOutputDataBuff[0][i]
                 maxIndex = i
             }
         }
+        println(maxIndex)
+
+        return maxIndex
+    }
+
+    private fun predictStation(): Int {
+        interpreter12?.run(rawInputDataBuff, stationOutputDataBuff)
+
+        var maxIndex = 0
+        var maxValue = stationOutputDataBuff[0][0]
+
+        for (i in 1 until stationOutputDataBuff[0].size) {
+            if (stationOutputDataBuff[0][i] > maxValue) {
+                maxValue = stationOutputDataBuff[0][i]
+                maxIndex = i
+            }
+        }
+        println("Station: $maxIndex")
+
+        return maxIndex
+    }
+
+    private fun predictNonstation(fftData: FloatArray): Int {
+        val inputDataBuffer = arrayOf(rawInputDataBuff[0] + fftData)
+        interpreter13?.run(inputDataBuffer, nonStationOutputDataBuff)
+
+        var maxIndex = 0
+        var maxValue = nonStationOutputDataBuff[0][0]
+
+        for (i in 1 until nonStationOutputDataBuff[0].size) {
+            if (nonStationOutputDataBuff[0][i] > maxValue) {
+                maxValue = nonStationOutputDataBuff[0][i]
+                maxIndex = i
+            }
+        }
+        println("Non Station: $maxIndex")
+
+        return maxIndex + 5
+    }
+
+    private fun predictTask2(fftData: FloatArray): Int {
+        val inputDataBuffer = arrayOf(rawInputDataBuff[0] + fftData)
+        println(inputDataBuffer[0].size)
+        interpreter2?.run(inputDataBuffer, task2OutputDataBuff)
+        var maxIndex = 0
+        var maxValue = task2OutputDataBuff[0][0]
+
+        for (i in 1 until task2OutputDataBuff[0].size) {
+            if (task2OutputDataBuff[0][i] > maxValue) {
+                maxValue = task2OutputDataBuff[0][i]
+                maxIndex = i
+            }
+        }
+        println("Task2: $maxIndex")
 
         return maxIndex
     }
@@ -297,11 +467,51 @@ class PredictFragment : Fragment() {
         }
     }
 
+    private fun getFFTData(): FloatArray {
+        return rfft(accXInputDataBuff) + rfft(accYInputDataBuff) + rfft(accZInputDataBuff) + rfft(gyroXInputDataBuff) + rfft(gyroYInputDataBuff) + rfft(gyroZInputDataBuff)
+    }
+
+    private fun rfft(inputSignal: List<Double>): FloatArray {
+        val fftOutput = FloatArray(26) { 0f }
+
+        // 创建一个 DoubleFFT_1D 对象，传入输入信号的大小（作为 long 类型）
+        val fft = DoubleFFT_1D(inputSignal.size.toLong())
+
+        // 执行 FFT 变换
+        fft.realForward(inputSignal.toDoubleArray())
+
+        // 计算振幅谱
+        val signalLength = inputSignal.size.toDouble()
+        // 0Hz
+        fftOutput[0] = (inputSignal[0] / signalLength).toFloat()
+
+        for (i in 0 until inputSignal.size / 2) {
+            val realPart = inputSignal[2 * i]
+            val imaginaryPart = inputSignal[2 * i + 1]
+            fftOutput[i+1] = (sqrt(realPart * realPart + imaginaryPart * imaginaryPart) / (signalLength / 2.0)).toFloat()
+        }
+
+        // 输出归一化的单边振幅谱
+        return fftOutput
+    }
+
+    override fun onPause() {
+        super.onPause()
+        requireActivity().unregisterReceiver(respeckLiveUpdateReceiver)
+        looperRespeck.quit()
+        interpreter11?.close()
+        interpreter12?.close()
+        interpreter13?.close()
+        interpreter2?.close()
+    }
 
     override fun onDestroy() {
         super.onDestroy()
         requireActivity().unregisterReceiver(respeckLiveUpdateReceiver)
         looperRespeck.quit()
-        interpreter.close()
+        interpreter11?.close()
+        interpreter12?.close()
+        interpreter13?.close()
+        interpreter2?.close()
     }
 }

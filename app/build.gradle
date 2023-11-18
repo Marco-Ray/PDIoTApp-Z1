@@ -9,7 +9,7 @@ android {
     defaultConfig {
         applicationId "com.specknet.pdiotapp"
         minSdkVersion 23
-        targetSdkVersion 30
+        targetSdkVersion 31
         versionCode 1
         versionName "1.0"
 
@@ -78,5 +78,8 @@ dependencies {
     implementation 'androidx.room:room-runtime:2.4.0'
     implementation 'androidx.room:room-ktx:2.4.0'
     kapt 'androidx.room:room-compiler:2.4.0'
+
+    //fft
+    implementation 'com.github.wendykierp:JTransforms:3.1'
 
 }

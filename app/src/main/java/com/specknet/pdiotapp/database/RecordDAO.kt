@@ -14,12 +14,12 @@ interface RecordDao {
     suspend fun getAllEntities(): List<Records>
 
     @Query("SELECT activityType, SUM(duration) as totalDuration FROM Records " +
-            "WHERE date = :selectedDate and userName = :userName " +
+            "WHERE date = :selectedDate and userName = :userName and task = :task " +
             "GROUP BY activityType ")
-    suspend fun getTotalDurationByActivityTypeInSelectedDate(userName: String, selectedDate: String): List<ActivityTypeDuration>
+    suspend fun getTotalDurationByActivityTypeInSelectedDate(userName: String, task: Int, selectedDate: String): List<ActivityTypeDuration>
 
     @Query("SELECT strftime('%w', date) as dayOfWeek, activityType, SUM(duration) as totalDuration FROM Records " +
-            "WHERE date >= :startDate and date <= :endDate and userName = :userName " +
+            "WHERE date >= :startDate and date <= :endDate and userName = :userName and task = :task " +
             "GROUP BY dayOfWeek, activityType")
-    suspend fun getTotalDurationByDayOfWeekInDateRange(userName: String, startDate: String, endDate: String): List<DayOfWeekDuration>
+    suspend fun getTotalDurationByDayOfWeekInDateRange(userName: String, task: Int, startDate: String, endDate: String): List<DayOfWeekDuration>
 }
