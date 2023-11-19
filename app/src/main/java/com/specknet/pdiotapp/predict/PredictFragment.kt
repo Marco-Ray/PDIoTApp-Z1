@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
@@ -56,6 +57,12 @@ class PredictFragment : Fragment() {
     private var interpreter24: Interpreter? = null
     private var interpreter25: Interpreter? = null
     private var interpreter26: Interpreter? = null
+    private var interpreter31: Interpreter? = null
+    private var interpreter32: Interpreter? = null
+    private var interpreter33: Interpreter? = null
+    private var interpreter34: Interpreter? = null
+    private var interpreter35: Interpreter? = null
+    private var interpreter36: Interpreter? = null
     private var rawInputDataBuff = Array(1) { FloatArray(300) { 0f } }
     private var accXInputDataBuff = Array<Double>(50) { 0.0 }
     private var accYInputDataBuff = Array<Double>(50) { 0.0 }
@@ -68,6 +75,8 @@ class PredictFragment : Fragment() {
     private var nonStationOutputDataBuff =  Array(1) { FloatArray(6) { 0f } }
     private var task2ActivityOutputDataBuff =  Array(1) { FloatArray(5) { 0f } }
     private var task2SymptomOutputDataBuff =  Array(1) { FloatArray(3) { 0f } }
+    private var task3ActivityOutputDataBuff =  Array(1) { FloatArray(5) { 0f } }
+    private var task3SymptomOutputDataBuff =  Array(1) { FloatArray(4) { 0f } }
     lateinit var looperRespeck: Looper
     private lateinit var respeckLiveUpdateReceiver: BroadcastReceiver
     val filterTestRespeck = IntentFilter(Constants.ACTION_RESPECK_LIVE_BROADCAST)
@@ -100,7 +109,7 @@ class PredictFragment : Fragment() {
         10 to "miscMovement",
     )
     // TODO
-    private val task1ImgMap = mapOf(
+    private val taskImgMap = mapOf(
         0 to R.drawable.sitting,
         1 to R.drawable.lying,
         2 to R.drawable.lying,
@@ -125,7 +134,8 @@ class PredictFragment : Fragment() {
     private val task2SymptomMap = mapOf(
         0 to "normalBreath",
         1 to "coughing",
-        2 to "hyperventilating"
+        2 to "hyperventilating",
+        3 to "other"
     )
 
     override fun onCreateView(
@@ -201,6 +211,12 @@ class PredictFragment : Fragment() {
                 interpreter24?.close()
                 interpreter25?.close()
                 interpreter26?.close()
+                interpreter31?.close()
+                interpreter32?.close()
+                interpreter33?.close()
+                interpreter34?.close()
+                interpreter35?.close()
+                interpreter36?.close()
                 loadPredictTask()
             }
 
@@ -262,6 +278,7 @@ class PredictFragment : Fragment() {
         val textView = rootView.findViewById<TextView>(R.id.predicted_activity)
         // Find the ImageView by its ID
         val imageView = rootView.findViewById<ImageView>(R.id.current_activity_image)
+        val borderDrawable = imageView.background as GradientDrawable
 
         // 设置点击事件监听器
         rootView.setOnClickListener {
@@ -340,6 +357,20 @@ class PredictFragment : Fragment() {
             interpreter25 = Interpreter(modelByteBuffer)
             modelByteBuffer = loadModelFile("Task2OnlineStomachLite.tflite")
             interpreter26 = Interpreter(modelByteBuffer)
+        } else {
+            // 加载模型和其他初始化操作 for task2
+            var modelByteBuffer = loadModelFile("Task3OnlineActivityLite.tflite")
+            interpreter31 = Interpreter(modelByteBuffer)
+            modelByteBuffer = loadModelFile("Task3OnlineSittingLite.tflite")
+            interpreter32 = Interpreter(modelByteBuffer)
+            modelByteBuffer = loadModelFile("Task3OnlineLeftLite.tflite")
+            interpreter33 = Interpreter(modelByteBuffer)
+            modelByteBuffer = loadModelFile("Task3OnlineRightLite.tflite")
+            interpreter34 = Interpreter(modelByteBuffer)
+            modelByteBuffer = loadModelFile("Task3OnlineBackLite.tflite")
+            interpreter35 = Interpreter(modelByteBuffer)
+            modelByteBuffer = loadModelFile("Task3OnlineStomachLite.tflite")
+            interpreter36 = Interpreter(modelByteBuffer)
         }
     }
 
@@ -354,14 +385,23 @@ class PredictFragment : Fragment() {
                 predictNonstation(fftData)
             }
             currentActivity = task1Map[currentActivityIndex]!!
-            currentActivityImage = task1ImgMap[currentActivityIndex]!!
+            currentActivityImage = taskImgMap[currentActivityIndex]!!
         } else if (currentTask == 1) {
             val fftData = getFFTData()
             val activityIndex = predictTask2Activity(fftData)
-            val currentSymptomIndex = predictTask2Symptom(fftData, currentActivityIndex)
+            val currentSymptomIndex = predictTask2Symptom(fftData, activityIndex)
             currentActivity = "${task2ActivityMap[activityIndex]!!} + ${task2SymptomMap[currentSymptomIndex]!!}"
-            currentActivityImage = task1ImgMap[activityIndex]!!
+            currentActivityImage = taskImgMap[activityIndex]!!
             currentActivityIndex = activityIndex*3 + currentSymptomIndex
+        } else {
+            val fftData = getFFTData()
+            val activityIndex = predictTask3Activity(fftData)
+            println("Task3 $activityIndex")
+            val currentSymptomIndex = predictTask3Symptom(fftData, activityIndex)
+            println("Task3 $currentSymptomIndex")
+            currentActivity = "${task2ActivityMap[activityIndex]!!} + ${task2SymptomMap[currentSymptomIndex]!!}"
+            currentActivityImage = taskImgMap[activityIndex]!!
+            currentActivityIndex = activityIndex*4 + currentSymptomIndex
         }
         return currentActivityIndex
     }
@@ -460,6 +500,24 @@ class PredictFragment : Fragment() {
             4 -> interpreter26?.run(inputDataBuffer, task2SymptomOutputDataBuff)
         }
         return getMaxIndex(task2SymptomOutputDataBuff)
+    }
+
+    private fun predictTask3Activity(fftData: FloatArray): Int {
+        val inputDataBuffer = arrayOf(rawInputDataBuff[0] + fftData)
+        interpreter31?.run(inputDataBuffer, task3ActivityOutputDataBuff)
+        return getMaxIndex(task3ActivityOutputDataBuff)
+    }
+
+    private fun predictTask3Symptom(fftData: FloatArray, currentActivityIndex: Int): Int {
+        val inputDataBuffer = arrayOf(rawInputDataBuff[0] + fftData)
+        when (currentActivityIndex) {
+            0 -> interpreter32?.run(inputDataBuffer, task3SymptomOutputDataBuff)
+            1 -> interpreter33?.run(inputDataBuffer, task3SymptomOutputDataBuff)
+            2 -> interpreter34?.run(inputDataBuffer, task3SymptomOutputDataBuff)
+            3 -> interpreter35?.run(inputDataBuffer, task3SymptomOutputDataBuff)
+            4 -> interpreter36?.run(inputDataBuffer, task3SymptomOutputDataBuff)
+        }
+        return getMaxIndex(task3SymptomOutputDataBuff)
     }
 
     private fun getMaxIndex(outputDataBuff: Array<FloatArray>): Int {
