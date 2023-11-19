@@ -157,7 +157,7 @@ public class BluetoothSpeckService extends Service {
         Log.d(TAG, "startInForeground: here");
         if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.O) {
             Intent notificationIntent = new Intent(this, MainActivity.class);
-            PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
+            PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
 
             Notification notification = new Notification.Builder(this).setContentTitle(
                     getText(R.string.notification_speck_title)).setContentText(

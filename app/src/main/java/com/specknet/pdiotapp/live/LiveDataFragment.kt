@@ -73,13 +73,6 @@ class LiveDataFragment : Fragment() {
         }
     }
 
-    private fun loadFragment(fragment: Fragment) {
-        val transaction: FragmentTransaction = requireActivity().supportFragmentManager.beginTransaction()
-        transaction.replace(R.id.container, fragment)
-        transaction.addToBackStack(null) // 可选，用于将事务添加到返回栈
-        transaction.commit()
-    }
-
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
 

@@ -8,6 +8,8 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.github.mikephil.charting.charts.HorizontalBarChart
 import com.github.mikephil.charting.components.Legend
@@ -20,6 +22,7 @@ import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.google.android.gms.internal.zzhu
 import com.specknet.pdiotapp.database.DayOfWeekDuration
 import com.specknet.pdiotapp.database.RecordDao
+import com.specknet.pdiotapp.utils.TaskViewModel
 import com.specknet.pdiotapp.utils.UserInfoViewModel
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -51,19 +54,27 @@ class HistoryWeeklyFragment : Fragment() {
     // 获取 ViewModel
     private val userModel by activityViewModels<UserInfoViewModel>()
     private lateinit var colorClassArray: List<Int>
-    private lateinit var customLabels: Array<String>
+    private lateinit var taskLabels: Array<String>
+    private lateinit var taskViewModel: TaskViewModel
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_history_weekly, container, false)
+        taskViewModel = ViewModelProvider(requireActivity()).get(TaskViewModel::class.java)
+        taskLabels = if (taskViewModel.currentTask.value == 0) {
+            HistoryFragment.task1Labels
+        } else {
+            HistoryFragment.task2Labels
+        }
+        colorClassArray = HistoryFragment.generateColorList(if (taskViewModel.currentTask.value==0) {12} else {15})
 
         // init start
         // Get the database instance
         recordDao = MainActivity.database.RecordDao()
-        colorClassArray = HistoryFragment.colorClassArray
-        customLabels = HistoryFragment.task1Labels
+        colorClassArray = HistoryFragment.generateColorList(if (taskViewModel.currentTask.value==0) {12} else {15})
+        println("Weekly color ${colorClassArray.size}")
 
         horizontalBarChart = view.findViewById(R.id.hBarChartWeekly)
         // 配置水平堆叠的条形图
@@ -72,7 +83,7 @@ class HistoryWeeklyFragment : Fragment() {
         firstDateView = view.findViewById(R.id.firstDate)
         secondDateView = view.findViewById(R.id.secondDate)
 
-        toDate = Date()
+        toDate = stringToDate(taskViewModel.selectedDate.value!!)!!
         fromDate = addDaysToDate(toDate, -7)
         queryWeeklyData(formatDateToString(fromDate), formatDateToString(toDate))
         firstDateView.text = formatDateToString(fromDate)
@@ -83,6 +94,7 @@ class HistoryWeeklyFragment : Fragment() {
                 fromDate = selectedDate
                 if ((toDate == null) || (fromDate!! > toDate!!)) {
                     toDate = addDaysToDate(fromDate!!, 1)
+                    taskViewModel.updateDate(formatDateToString(toDate))
                     secondDateView.text = formatDateToString(toDate!!)
                 }
                 firstDateView.text = formatDateToString(fromDate!!)
@@ -94,6 +106,7 @@ class HistoryWeeklyFragment : Fragment() {
         secondDateView.setOnClickListener {
             showDatePickerDialog { selectedDate ->
                 toDate = selectedDate
+                taskViewModel.updateDate(formatDateToString(toDate))
                 if ((fromDate == null) || (fromDate!! > toDate!!)) {
                     fromDate = addDaysToDate(toDate!!, -1)
                     firstDateView.text = formatDateToString(fromDate!!)
@@ -103,6 +116,12 @@ class HistoryWeeklyFragment : Fragment() {
             }
         }
 
+        taskViewModel.currentTask.observe(viewLifecycleOwner, Observer { newTask ->
+            setLegend()
+            colorClassArray = HistoryFragment.generateColorList(if (newTask==0) {12} else {15})
+            queryWeeklyData(formatDateToString(fromDate), formatDateToString(toDate))
+        })
+
         return view
     }
 
@@ -111,7 +130,7 @@ class HistoryWeeklyFragment : Fragment() {
 
         for (dayOfWeek in (0..6).toList()) {
             val subset = dayOfWeekDurations.filter { it.dayOfWeek == dayOfWeek }
-            val floatArray = FloatArray(12)
+            val floatArray = FloatArray(if (taskViewModel.currentTask.value == 0) {12} else {15})
             for (activity in subset) {
                 floatArray[activity.activityType] = activity.totalDuration.toFloat()
             }
@@ -123,7 +142,7 @@ class HistoryWeeklyFragment : Fragment() {
 
     private fun queryWeeklyData(startDate: String, endDate: String) {
         viewLifecycleOwner.lifecycleScope.launch {
-            val entities = recordDao.getTotalDurationByDayOfWeekInDateRange(userModel.userName.value!!, HistoryFragment.currentTask.value!!, startDate, endDate)
+            val entities = recordDao.getTotalDurationByDayOfWeekInDateRange(userModel.userName.value!!, taskViewModel.currentTask.value!!, startDate, endDate)
             println(entities)
             // 创建数据集
             val entries = convertToBarEntries(entities)
@@ -163,7 +182,7 @@ class HistoryWeeklyFragment : Fragment() {
         xAxis.isGranularityEnabled = true
         xAxis.granularity = 1f
         xAxis.axisMinimum = 0f
-        xAxis.labelCount = customLabels.size
+        xAxis.labelCount = taskLabels.size
 
         xAxis.valueFormatter = IndexAxisValueFormatter(weekdayLabels)
 
@@ -173,18 +192,25 @@ class HistoryWeeklyFragment : Fragment() {
         val rightAxis = horizontalBarChart.axisRight
         rightAxis.axisMinimum = 0f
 
+        setLegend()
+
+    }
+
+    private fun setLegend() {
         // 配置 Legend
+        taskLabels = if (taskViewModel.currentTask.value == 0) {
+            HistoryFragment.task1Labels
+        } else {
+            HistoryFragment.task2Labels
+        }
         val legend: Legend = horizontalBarChart.legend
         legend.isWordWrapEnabled = true
         val legendEntries = mutableListOf<LegendEntry>()
-        for ((color, label) in colorClassArray.zip(customLabels)) {
+        for ((color, label) in colorClassArray.zip(taskLabels)) {
             legendEntries.add(LegendEntry(label, Legend.LegendForm.SQUARE, 8f, 8f, null, color))
         }
         // 设置自定义的 LegendEntry 列表
         legend.setCustom(legendEntries)
-
-
-
     }
 
     private fun formatDateToString(date: Date?): String {
@@ -193,6 +219,16 @@ class HistoryWeeklyFragment : Fragment() {
             return format.format(it)
         }
         return "null" // 或者返回空字符串，取决于你的需求
+    }
+
+    fun stringToDate(dateString: String): Date? {
+        val format = SimpleDateFormat("yyyy-MM-dd")
+        try {
+            return format.parse(dateString)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return null
     }
 
     private fun addDaysToDate(date: Date, days: Int): Date {

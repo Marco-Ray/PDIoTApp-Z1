@@ -34,6 +34,7 @@ import com.specknet.pdiotapp.utils.RESpeckLiveData
 import com.specknet.pdiotapp.utils.UserInfoViewModel
 import kotlinx.android.synthetic.main.fragment_predict.togglePredict
 import kotlinx.coroutines.launch
+import org.jtransforms.fft.DoubleFFT_1D
 import org.tensorflow.lite.Interpreter
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -41,7 +42,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
-import org.jtransforms.fft.DoubleFFT_1D
 import kotlin.math.sqrt
 
 class PredictFragment : Fragment() {
@@ -50,12 +50,12 @@ class PredictFragment : Fragment() {
     private var interpreter13: Interpreter? = null
     private var interpreter2: Interpreter? = null
     private var rawInputDataBuff = Array(1) { FloatArray(300) { 0f } }
-    private var accXInputDataBuff = List<Double>(50) { 0.0 }
-    private var accYInputDataBuff = List<Double>(50) { 0.0 }
-    private var accZInputDataBuff = List<Double>(50) { 0.0 }
-    private var gyroXInputDataBuff = List<Double>(50) { 0.0 }
-    private var gyroYInputDataBuff = List<Double>(50) { 0.0 }
-    private var gyroZInputDataBuff = List<Double>(50) { 0.0 }
+    private var accXInputDataBuff = Array<Double>(50) { 0.0 }
+    private var accYInputDataBuff = Array<Double>(50) { 0.0 }
+    private var accZInputDataBuff = Array<Double>(50) { 0.0 }
+    private var gyroXInputDataBuff = Array<Double>(50) { 0.0 }
+    private var gyroYInputDataBuff = Array<Double>(50) { 0.0 }
+    private var gyroZInputDataBuff = Array<Double>(50) { 0.0 }
     private var binaryOutputDataBuff = Array(1) { FloatArray(2) { 0f } }
     private var stationOutputDataBuff = Array(1) { FloatArray(5) { 0f } }
     private var nonStationOutputDataBuff =  Array(1) { FloatArray(6) { 0f } }
@@ -254,10 +254,11 @@ class PredictFragment : Fragment() {
                     Log.d("Live", "onReceive: liveData = " + liveData)
 
                     updateBuffer(liveData)
-                    if (counter % 10 == 0) {
-                        counter = 0
+                    // TODO
+                    if (counter % 25 == 0) {
                         val currentActivityIndex = predictTask()
                         currentActivityIndexLiveData.postValue(currentActivityIndex)
+                        counter = 0
                     }
                     counter += 1
 
@@ -382,12 +383,12 @@ class PredictFragment : Fragment() {
         rawInputDataBuff[0] = rawInputDataBuff[0].drop(6).toFloatArray() // drop first 6 elements (oldest reading)
         rawInputDataBuff[0] = rawInputDataBuff[0] + a_x + a_y + a_z + g_x + g_y + g_z
 
-        accXInputDataBuff = accXInputDataBuff.drop(1).plus(a_x.toDouble())
-        accYInputDataBuff = accYInputDataBuff.drop(1).plus(a_y.toDouble())
-        accZInputDataBuff = accZInputDataBuff.drop(1).plus(a_z.toDouble())
-        gyroXInputDataBuff = gyroXInputDataBuff.drop(1).plus(g_x.toDouble())
-        gyroYInputDataBuff = gyroYInputDataBuff.drop(1).plus(g_y.toDouble())
-        gyroZInputDataBuff = gyroZInputDataBuff.drop(1).plus(g_z.toDouble())
+        accXInputDataBuff = accXInputDataBuff.drop(1).plus(a_x.toDouble()).toTypedArray()
+        accYInputDataBuff = accYInputDataBuff.drop(1).plus(a_y.toDouble()).toTypedArray()
+        accZInputDataBuff = accZInputDataBuff.drop(1).plus(a_z.toDouble()).toTypedArray()
+        gyroXInputDataBuff = gyroXInputDataBuff.drop(1).plus(g_x.toDouble()).toTypedArray()
+        gyroYInputDataBuff = gyroYInputDataBuff.drop(1).plus(g_y.toDouble()).toTypedArray()
+        gyroZInputDataBuff = gyroZInputDataBuff.drop(1).plus(g_z.toDouble()).toTypedArray()
     }
 
     private fun predictStationOrNonstation(): Int {
@@ -471,24 +472,44 @@ class PredictFragment : Fragment() {
         return rfft(accXInputDataBuff) + rfft(accYInputDataBuff) + rfft(accZInputDataBuff) + rfft(gyroXInputDataBuff) + rfft(gyroYInputDataBuff) + rfft(gyroZInputDataBuff)
     }
 
-    private fun rfft(inputSignal: List<Double>): FloatArray {
+    private fun hanningWindow(inputSignal: Array<Double>): DoubleArray {
+        val result = DoubleArray(inputSignal.size + 2) { 0.0 }
+        val hanningWindow = doubleArrayOf(0.0, 0.00410499, 0.01635257, 0.03654162, 0.06434065,
+            0.09929319, 0.14082532, 0.1882551 , 0.24080372, 0.29760833,
+            0.35773621, 0.42020005, 0.48397421, 0.54801151, 0.61126047,
+            0.67268253, 0.73126915, 0.78605833, 0.83615045, 0.88072298,
+            0.91904405, 0.95048443, 0.97452787, 0.99077958, 0.9989727 ,
+            0.9989727 , 0.99077958, 0.97452787, 0.95048443, 0.91904405,
+            0.88072298, 0.83615045, 0.78605833, 0.73126915, 0.67268253,
+            0.61126047, 0.54801151, 0.48397421, 0.42020005, 0.35773621,
+            0.29760833, 0.24080372, 0.1882551 , 0.14082532, 0.09929319,
+            0.06434065, 0.03654162, 0.01635257, 0.00410499, 0.0)
+        for (i in 0 until 50) {
+            result[i] =
+                (inputSignal[i] * hanningWindow[i]).toDouble()
+        }
+        return result
+    }
+
+    private fun rfft(inputSignal: Array<Double>): FloatArray {
         val fftOutput = FloatArray(26) { 0f }
 
+        val newInputSignal = hanningWindow(inputSignal)
+        println("hanning: $newInputSignal")
+
         // 创建一个 DoubleFFT_1D 对象，传入输入信号的大小（作为 long 类型）
-        val fft = DoubleFFT_1D(inputSignal.size.toLong())
+        val fft = DoubleFFT_1D(newInputSignal.size.toLong())
 
         // 执行 FFT 变换
-        fft.realForward(inputSignal.toDoubleArray())
+        fft.realForward(newInputSignal)
 
         // 计算振幅谱
-        val signalLength = inputSignal.size.toDouble()
-        // 0Hz
-        fftOutput[0] = (inputSignal[0] / signalLength).toFloat()
 
-        for (i in 0 until inputSignal.size / 2) {
-            val realPart = inputSignal[2 * i]
-            val imaginaryPart = inputSignal[2 * i + 1]
-            fftOutput[i+1] = (sqrt(realPart * realPart + imaginaryPart * imaginaryPart) / (signalLength / 2.0)).toFloat()
+        for (i in 0 until newInputSignal.size / 2) {
+            val realPart = newInputSignal[2 * i]
+            val imaginaryPart = newInputSignal[2 * i + 1]
+//            fftOutput[i+1] = (sqrt(realPart * realPart + imaginaryPart * imaginaryPart) / (signalLength / 2.0)).toFloat()
+            fftOutput[i] = (sqrt(realPart * realPart + imaginaryPart * imaginaryPart)).toFloat()
         }
 
         // 输出归一化的单边振幅谱

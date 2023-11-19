@@ -8,6 +8,8 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.github.mikephil.charting.charts.HorizontalBarChart
 import com.github.mikephil.charting.components.Legend
@@ -19,8 +21,8 @@ import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.google.android.gms.internal.zzhu.runOnUiThread
 import com.specknet.pdiotapp.database.ActivityTypeDuration
 import com.specknet.pdiotapp.database.RecordDao
+import com.specknet.pdiotapp.utils.TaskViewModel
 import com.specknet.pdiotapp.utils.UserInfoViewModel
-import kotlinx.android.synthetic.main.fragment_history.history_container
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -44,57 +46,75 @@ class HistoryDailyFragment : Fragment() {
 
     private lateinit var horizontalBarChart: HorizontalBarChart
     private lateinit var dateView: TextView
-    private lateinit var todayDate: String
+    private lateinit var selectedDate: String
 
     private lateinit var recordDao: RecordDao
     // 获取 ViewModel
     private val userModel by activityViewModels<UserInfoViewModel>()
     private lateinit var colorClassArray: List<Int>
     private lateinit var taskLabels: Array<String>
+    private lateinit var taskViewModel: TaskViewModel
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_history_daily, container, false)
-
-
-        HistoryFragment.currentTask.observe(viewLifecycleOwner) { newTask ->
-            println(newTask)
-        }
+        taskViewModel = ViewModelProvider(requireActivity()).get(TaskViewModel::class.java)
 
         // init start
         // Get the database instance
         recordDao = MainActivity.database.RecordDao()
-        colorClassArray = HistoryFragment.colorClassArray
+        colorClassArray = HistoryFragment.generateColorList(if (taskViewModel.currentTask.value==0) {12} else {15})
+        println("Daily color ${colorClassArray.size}")
 
-        todayDate = dateToString(Date())
-        queryDailyData(todayDate)
+        selectedDate = taskViewModel.selectedDate.value!!
+        queryDailyData(selectedDate)
 
         dateView = view.findViewById(R.id.date)
-        dateView.text = todayDate
+        dateView.text = selectedDate
         dateView.setOnClickListener {
             showDatePickerDialog()
         }
 
         horizontalBarChart = view.findViewById(R.id.hBarChartDaily)
 
-        // 配置水平柱状图
-        horizontalBarChart.description.isEnabled = false
-        horizontalBarChart.setTouchEnabled(true)
-        horizontalBarChart.setDrawValueAboveBar(true)
+        configureHorizontalBarChart()
 
+        taskViewModel.currentTask.observe(viewLifecycleOwner, Observer { newTask ->
+            setXAxis()
+            colorClassArray = HistoryFragment.generateColorList(if (newTask == 0) {12} else {15})
+            queryDailyData(selectedDate)
+        })
+
+        return view
+    }
+
+    private fun setXAxis() {
         // 自定义 X 轴
         val xAxis = horizontalBarChart.xAxis
 
         // 自定义 X 轴标签
-        taskLabels = HistoryFragment.taskLabels
+        taskLabels = if (taskViewModel.currentTask.value == 0) {
+            HistoryFragment.task1Labels
+        } else {
+            HistoryFragment.task2Labels
+        }
         xAxis.valueFormatter = IndexAxisValueFormatter(taskLabels)
         xAxis.position = XAxis.XAxisPosition.BOTTOM
         // 设置 X 轴的标签间隔为1，强制显示所有标签
         xAxis.isGranularityEnabled = true
         xAxis.granularity = 1f
         xAxis.labelCount = taskLabels.size;
+    }
+
+    private fun configureHorizontalBarChart() {
+        // 配置水平柱状图
+        horizontalBarChart.description.isEnabled = false
+        horizontalBarChart.setTouchEnabled(true)
+        horizontalBarChart.setDrawValueAboveBar(true)
+
+        setXAxis()
 
         // 自定义 Y 轴
         val leftAxis = horizontalBarChart.axisLeft
@@ -104,9 +124,6 @@ class HistoryDailyFragment : Fragment() {
         // 配置 Legend
         val legend: Legend = horizontalBarChart.legend
         legend.isEnabled = false
-
-
-        return view
     }
 
     private fun convertToBarEntries(activityTypeDurations: List<ActivityTypeDuration>): List<BarEntry> {
@@ -122,7 +139,7 @@ class HistoryDailyFragment : Fragment() {
 
     private fun queryDailyData(selectedDate: String) {
         viewLifecycleOwner.lifecycleScope.launch {
-            val entities = recordDao.getTotalDurationByActivityTypeInSelectedDate(userModel.userName.value!!, HistoryFragment.currentTask.value!!, selectedDate)
+            val entities = recordDao.getTotalDurationByActivityTypeInSelectedDate(userModel.userName.value!!, taskViewModel.currentTask.value!!, selectedDate)
             println(entities)
             // 创建数据集
             val entries = convertToBarEntries(entities)
@@ -152,6 +169,7 @@ class HistoryDailyFragment : Fragment() {
                 val selectedDate = "$selectedYear-${selectedMonth + 1}-$selectedDay"
                 dateView.text = selectedDate
                 queryDailyData(selectedDate)
+                taskViewModel.updateDate(selectedDate)
             },
             year,
             month,

@@ -12,7 +12,10 @@ import android.widget.ToggleButton
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
 import com.github.mikephil.charting.charts.HorizontalBarChart
+import com.specknet.pdiotapp.utils.TaskViewModel
 import java.util.Date
 
 // TODO: Rename parameter arguments, choose names that match
@@ -31,6 +34,7 @@ class HistoryFragment : Fragment() {
     private var param2: String? = null
 
     private lateinit var horizontalBarChart: HorizontalBarChart
+    private lateinit var taskViewModel: TaskViewModel
 
 
     override fun onCreateView(
@@ -38,6 +42,7 @@ class HistoryFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_history, container, false)
+        taskViewModel = ViewModelProvider(requireActivity()).get(TaskViewModel::class.java)
 
         val spinner = view.findViewById<Spinner>(R.id.spinner)
         // 创建一个适配器（可以使用 ArrayAdapter、CursorAdapter 等）
@@ -49,7 +54,7 @@ class HistoryFragment : Fragment() {
         spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 // 处理选择项的操作
-                currentTask.postValue(position)
+                taskViewModel.updateTask(position)
                 val selectedItem = taskList[position]
                 // 在这里执行相应的操作
             }
@@ -73,8 +78,6 @@ class HistoryFragment : Fragment() {
                 true
             }
         }
-
-        colorClassArray = generateColorList(if (currentTask.value == 0) {12} else {15})
 
         task1Labels = arrayOf(
             "sitting/standing",
@@ -108,12 +111,6 @@ class HistoryFragment : Fragment() {
             "lyingStomach + hyperventilating",
         )
 
-        taskLabels = if (currentTask.value == 0) {
-            task1Labels
-        } else {
-            task2Labels
-        }
-
         return view
     }
 
@@ -124,29 +121,10 @@ class HistoryFragment : Fragment() {
         transaction.commit()
     }
 
-    fun generateColorList(num: Int): List<Int> {
-        val colorList = mutableListOf<Int>()
-
-        // 生成12种颜色
-        for (i in 0 until num) {
-            val hue = (i * 30) % 360  // 通过改变hue值生成不同的颜色
-            val color = Color.HSVToColor(floatArrayOf(hue.toFloat(), 1f, 1f))
-            colorList.add(color)
-        }
-
-        return colorList
-    }
-
     companion object {
-        lateinit var colorClassArray: List<Int>
-            private set
         lateinit var task1Labels: Array<String>
             private set
         lateinit var task2Labels: Array<String>
-            private set
-        lateinit var taskLabels: Array<String>
-            private set
-        lateinit var currentTask: MutableLiveData<Int>
             private set
         /**
          * Use this factory method to create a new instance of
@@ -164,5 +142,18 @@ class HistoryFragment : Fragment() {
                         putString(ARG_PARAM2, param2)
                     }
                 }
+
+        fun generateColorList(num: Int): List<Int> {
+            val colorList = mutableListOf<Int>()
+
+            // 生成num种颜色
+            for (i in 0 until num) {
+                val hue = (i * 30) % 360  // 通过改变hue值生成不同的颜色
+                val color = Color.HSVToColor(floatArrayOf(hue.toFloat(), 1f, 1f))
+                colorList.add(color)
+            }
+
+            return colorList
+        }
     }
 }
