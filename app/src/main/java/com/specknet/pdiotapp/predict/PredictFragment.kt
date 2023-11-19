@@ -533,7 +533,6 @@ class PredictFragment : Fragment() {
     override fun onPause() {
         super.onPause()
         requireActivity().unregisterReceiver(respeckLiveUpdateReceiver)
-        looperRespeck.quit()
         interpreter11?.close()
         interpreter12?.close()
         interpreter13?.close()
@@ -544,9 +543,5 @@ class PredictFragment : Fragment() {
         super.onDestroy()
         requireActivity().unregisterReceiver(respeckLiveUpdateReceiver)
         looperRespeck.quit()
-        interpreter11?.close()
-        interpreter12?.close()
-        interpreter13?.close()
-        interpreter2?.close()
     }
 }
