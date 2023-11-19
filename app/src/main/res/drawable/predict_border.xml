@@ -5,7 +5,7 @@
 
     <solid android:color="@android:color/transparent" /> <!-- 背景填充颜色，这里设置为透明 -->
     <stroke
-        android:width="3dp"
+        android:width="5dp"
         android:color="#000000"/>
 
     <padding

@@ -20,6 +20,7 @@ import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import android.widget.ToggleButton
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.MutableLiveData
@@ -93,6 +94,7 @@ class PredictFragment : Fragment() {
     private var currentActivityImage: Int = R.drawable.unknown
 
     private lateinit var bleStatusViewModel: BLEStatusViewModel
+    private val currentSymptomIndexLiveData = MutableLiveData<Int>()
 
     // Labels
     private val task1Map = mapOf(
@@ -115,12 +117,12 @@ class PredictFragment : Fragment() {
         2 to R.drawable.lying,
         3 to R.drawable.lying,
         4 to R.drawable.lying,
-        6 to R.drawable.standing,
-        7 to R.drawable.sitting,
-        8 to R.drawable.sitting,
-        9 to R.drawable.sitting,
-        10 to R.drawable.sitting,
-        11 to R.drawable.sitting,
+        5 to R.drawable.walking,
+        6 to R.drawable.walking,
+        7 to R.drawable.walking,
+        8 to R.drawable.ascending,
+        9 to R.drawable.descending,
+        10 to R.drawable.unknown,
     )
 
     private val task2ActivityMap = mapOf(
@@ -202,21 +204,7 @@ class PredictFragment : Fragment() {
                 currentTask = position
                 val selectedItem = taskList[position]
                 // 在这里执行相应的操作
-                interpreter11?.close()
-                interpreter12?.close()
-                interpreter13?.close()
-                interpreter21?.close()
-                interpreter22?.close()
-                interpreter23?.close()
-                interpreter24?.close()
-                interpreter25?.close()
-                interpreter26?.close()
-                interpreter31?.close()
-                interpreter32?.close()
-                interpreter33?.close()
-                interpreter34?.close()
-                interpreter35?.close()
-                interpreter36?.close()
+                closeInterpreters()
                 loadPredictTask()
             }
 
@@ -251,9 +239,19 @@ class PredictFragment : Fragment() {
 
         }
 
+        // 示例：获取 TextView 并设置文本
+        val textView = rootView.findViewById<TextView>(R.id.predicted_activity)
+        // Find the ImageView by its ID
+        val imageView = rootView.findViewById<ImageView>(R.id.current_activity_image)
+        val borderDrawable = imageView.background as GradientDrawable
+
+        // 设置点击事件监听器
+        rootView.setOnClickListener {
+            // 处理点击事件
+        }
+
         // 在Fragment中定义LiveData
         val currentActivityIndexLiveData = MutableLiveData<Int>()
-
         currentActivityIndexLiveData.observe(viewLifecycleOwner) { newActivityIndex ->
             if (userModel.userName.value != null && isRecording) {
                 if (recordingActivityIndex == null) {
@@ -274,15 +272,14 @@ class PredictFragment : Fragment() {
             }
         }
 
-        // 示例：获取 TextView 并设置文本
-        val textView = rootView.findViewById<TextView>(R.id.predicted_activity)
-        // Find the ImageView by its ID
-        val imageView = rootView.findViewById<ImageView>(R.id.current_activity_image)
-        val borderDrawable = imageView.background as GradientDrawable
 
-        // 设置点击事件监听器
-        rootView.setOnClickListener {
-            // 处理点击事件
+        currentSymptomIndexLiveData.observe(viewLifecycleOwner) { newSymptomIndex ->
+            borderDrawable.setStroke(5,
+                if (newSymptomIndex in arrayOf(1,2)) {
+                    ContextCompat.getColor(requireContext(),R.color.red)
+                } else {
+                    ContextCompat.getColor(requireContext(),R.color.black)
+                })
         }
 
         // set up the broadcast receiver
@@ -332,6 +329,39 @@ class PredictFragment : Fragment() {
         )
 
         return rootView
+    }
+
+    private fun closeInterpreters() {
+        interpreter11?.close()
+        interpreter11 = null
+        interpreter12?.close()
+        interpreter12 = null
+        interpreter13?.close()
+        interpreter13 = null
+        interpreter21?.close()
+        interpreter21 = null
+        interpreter22?.close()
+        interpreter22 = null
+        interpreter23?.close()
+        interpreter23 = null
+        interpreter24?.close()
+        interpreter24 = null
+        interpreter25?.close()
+        interpreter25 = null
+        interpreter26?.close()
+        interpreter26 = null
+        interpreter31?.close()
+        interpreter31 = null
+        interpreter32?.close()
+        interpreter32 = null
+        interpreter33?.close()
+        interpreter33 = null
+        interpreter34?.close()
+        interpreter34 = null
+        interpreter35?.close()
+        interpreter35 = null
+        interpreter36?.close()
+        interpreter36 = null
     }
 
     private fun loadPredictTask() {
@@ -384,24 +414,25 @@ class PredictFragment : Fragment() {
                 val fftData = getFFTData()
                 predictNonstation(fftData)
             }
+            currentSymptomIndexLiveData.postValue(0)
             currentActivity = task1Map[currentActivityIndex]!!
             currentActivityImage = taskImgMap[currentActivityIndex]!!
         } else if (currentTask == 1) {
             val fftData = getFFTData()
             val activityIndex = predictTask2Activity(fftData)
             val currentSymptomIndex = predictTask2Symptom(fftData, activityIndex)
+            currentSymptomIndexLiveData.postValue(currentSymptomIndex)
             currentActivity = "${task2ActivityMap[activityIndex]!!} + ${task2SymptomMap[currentSymptomIndex]!!}"
             currentActivityImage = taskImgMap[activityIndex]!!
-            currentActivityIndex = activityIndex*3 + currentSymptomIndex
+            currentActivityIndex = activityIndex + currentSymptomIndex*5
         } else {
             val fftData = getFFTData()
             val activityIndex = predictTask3Activity(fftData)
-            println("Task3 $activityIndex")
             val currentSymptomIndex = predictTask3Symptom(fftData, activityIndex)
-            println("Task3 $currentSymptomIndex")
+            currentSymptomIndexLiveData.postValue(currentSymptomIndex)
             currentActivity = "${task2ActivityMap[activityIndex]!!} + ${task2SymptomMap[currentSymptomIndex]!!}"
             currentActivityImage = taskImgMap[activityIndex]!!
-            currentActivityIndex = activityIndex*4 + currentSymptomIndex
+            currentActivityIndex = activityIndex + currentSymptomIndex*5
         }
         return currentActivityIndex
     }
@@ -589,15 +620,7 @@ class PredictFragment : Fragment() {
     override fun onPause() {
         super.onPause()
         requireActivity().unregisterReceiver(respeckLiveUpdateReceiver)
-        interpreter11?.close()
-        interpreter12?.close()
-        interpreter13?.close()
-        interpreter21?.close()
-        interpreter22?.close()
-        interpreter23?.close()
-        interpreter24?.close()
-        interpreter25?.close()
-        interpreter26?.close()
+        closeInterpreters()
     }
 
     override fun onDestroy() {

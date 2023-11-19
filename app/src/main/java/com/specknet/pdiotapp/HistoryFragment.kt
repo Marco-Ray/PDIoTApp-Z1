@@ -111,6 +111,29 @@ class HistoryFragment : Fragment() {
             "lyingStomach + hyperventilating",
         )
 
+        task3Labels = arrayOf(
+            "sitting/standing + normalBreath",
+            "lyingLeft + normalBreath",
+            "lyingRight + normalBreath",
+            "lyingBack + normalBreath",
+            "lyingStomach + normalBreath",
+            "sitting/standing + coughing",
+            "lyingLeft + coughing",
+            "lyingRight + coughing",
+            "lyingBack + coughing",
+            "lyingStomach + coughing",
+            "sitting/standing + hyperventilating",
+            "lyingLeft + hyperventilating",
+            "lyingRight + hyperventilating",
+            "lyingBack + hyperventilating",
+            "lyingStomach + hyperventilating",
+            "sitting/standing + other",
+            "lyingLeft + other",
+            "lyingRight + other",
+            "lyingBack + other",
+            "lyingStomach + other",
+        )
+
         return view
     }
 
@@ -125,6 +148,8 @@ class HistoryFragment : Fragment() {
         lateinit var task1Labels: Array<String>
             private set
         lateinit var task2Labels: Array<String>
+            private set
+        lateinit var task3Labels: Array<String>
             private set
         /**
          * Use this factory method to create a new instance of

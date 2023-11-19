@@ -65,7 +65,9 @@ class HistoryDailyFragment : Fragment() {
         // init start
         // Get the database instance
         recordDao = MainActivity.database.RecordDao()
-        colorClassArray = HistoryFragment.generateColorList(if (taskViewModel.currentTask.value==0) {12} else {15})
+        colorClassArray = HistoryFragment.generateColorList(
+            if (taskViewModel.currentTask.value==0) {12} else if (taskViewModel.currentTask.value==1) {15} else {20}
+        )
         println("Daily color ${colorClassArray.size}")
 
         selectedDate = taskViewModel.selectedDate.value!!
@@ -83,7 +85,9 @@ class HistoryDailyFragment : Fragment() {
 
         taskViewModel.currentTask.observe(viewLifecycleOwner, Observer { newTask ->
             setXAxis()
-            colorClassArray = HistoryFragment.generateColorList(if (newTask == 0) {12} else {15})
+            colorClassArray = HistoryFragment.generateColorList(
+                if (newTask == 0) {12} else if (newTask == 1) {15} else {20}
+            )
             queryDailyData(selectedDate)
         })
 
@@ -97,8 +101,10 @@ class HistoryDailyFragment : Fragment() {
         // 自定义 X 轴标签
         taskLabels = if (taskViewModel.currentTask.value == 0) {
             HistoryFragment.task1Labels
-        } else {
+        } else if (taskViewModel.currentTask.value == 1){
             HistoryFragment.task2Labels
+        } else {
+            HistoryFragment.task3Labels
         }
         xAxis.valueFormatter = IndexAxisValueFormatter(taskLabels)
         xAxis.position = XAxis.XAxisPosition.BOTTOM

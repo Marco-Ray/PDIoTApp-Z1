@@ -60,7 +60,7 @@
             android:layout_marginLeft="10dp"
             android:layout_marginRight="10dp"
             android:layout_weight="3"
-            android:background="@drawable/border_background"
+            android:background="@drawable/predict_border"
             android:src="@drawable/unknown" />
 
         <LinearLayout

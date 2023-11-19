@@ -68,12 +68,16 @@ class HistoryWeeklyFragment : Fragment() {
         } else {
             HistoryFragment.task2Labels
         }
-        colorClassArray = HistoryFragment.generateColorList(if (taskViewModel.currentTask.value==0) {12} else {15})
+        colorClassArray = HistoryFragment.generateColorList(
+            if (taskViewModel.currentTask.value==0) {12} else if (taskViewModel.currentTask.value==1) {15} else {20}
+        )
 
         // init start
         // Get the database instance
         recordDao = MainActivity.database.RecordDao()
-        colorClassArray = HistoryFragment.generateColorList(if (taskViewModel.currentTask.value==0) {12} else {15})
+        colorClassArray = HistoryFragment.generateColorList(
+            if (taskViewModel.currentTask.value==0) {12} else if (taskViewModel.currentTask.value==1) {15} else {20}
+        )
         println("Weekly color ${colorClassArray.size}")
 
         horizontalBarChart = view.findViewById(R.id.hBarChartWeekly)
@@ -118,7 +122,9 @@ class HistoryWeeklyFragment : Fragment() {
 
         taskViewModel.currentTask.observe(viewLifecycleOwner, Observer { newTask ->
             setLegend()
-            colorClassArray = HistoryFragment.generateColorList(if (newTask==0) {12} else {15})
+            colorClassArray = HistoryFragment.generateColorList(
+                if (newTask==0) {12} else if (newTask==1) {15} else {20}
+            )
             queryWeeklyData(formatDateToString(fromDate), formatDateToString(toDate))
         })
 
@@ -130,7 +136,9 @@ class HistoryWeeklyFragment : Fragment() {
 
         for (dayOfWeek in (0..6).toList()) {
             val subset = dayOfWeekDurations.filter { it.dayOfWeek == dayOfWeek }
-            val floatArray = FloatArray(if (taskViewModel.currentTask.value == 0) {12} else {15})
+            val floatArray = FloatArray(
+                if (taskViewModel.currentTask.value == 0) {12} else if (taskViewModel.currentTask.value==1) {15} else {20}
+            )
             for (activity in subset) {
                 floatArray[activity.activityType] = activity.totalDuration.toFloat()
             }
@@ -200,8 +208,10 @@ class HistoryWeeklyFragment : Fragment() {
         // 配置 Legend
         taskLabels = if (taskViewModel.currentTask.value == 0) {
             HistoryFragment.task1Labels
-        } else {
+        } else if (taskViewModel.currentTask.value==1) {
             HistoryFragment.task2Labels
+        } else {
+            HistoryFragment.task3Labels
         }
         val legend: Legend = horizontalBarChart.legend
         legend.isWordWrapEnabled = true
