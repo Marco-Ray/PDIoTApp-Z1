@@ -33,7 +33,6 @@ import com.specknet.pdiotapp.database.Records
 import com.specknet.pdiotapp.utils.BLEStatusViewModel
 import com.specknet.pdiotapp.utils.Constants
 import com.specknet.pdiotapp.utils.RESpeckLiveData
-import com.specknet.pdiotapp.utils.TaskViewModel
 import com.specknet.pdiotapp.utils.UserInfoViewModel
 import kotlinx.android.synthetic.main.fragment_predict.togglePredict
 import kotlinx.coroutines.launch
@@ -51,7 +50,12 @@ class PredictFragment : Fragment() {
     private var interpreter11: Interpreter? = null
     private var interpreter12: Interpreter? = null
     private var interpreter13: Interpreter? = null
-    private var interpreter2: Interpreter? = null
+    private var interpreter21: Interpreter? = null
+    private var interpreter22: Interpreter? = null
+    private var interpreter23: Interpreter? = null
+    private var interpreter24: Interpreter? = null
+    private var interpreter25: Interpreter? = null
+    private var interpreter26: Interpreter? = null
     private var rawInputDataBuff = Array(1) { FloatArray(300) { 0f } }
     private var accXInputDataBuff = Array<Double>(50) { 0.0 }
     private var accYInputDataBuff = Array<Double>(50) { 0.0 }
@@ -62,7 +66,8 @@ class PredictFragment : Fragment() {
     private var binaryOutputDataBuff = Array(1) { FloatArray(2) { 0f } }
     private var stationOutputDataBuff = Array(1) { FloatArray(5) { 0f } }
     private var nonStationOutputDataBuff =  Array(1) { FloatArray(6) { 0f } }
-    private var task2OutputDataBuff =  Array(1) { FloatArray(15) { 0f } }
+    private var task2ActivityOutputDataBuff =  Array(1) { FloatArray(5) { 0f } }
+    private var task2SymptomOutputDataBuff =  Array(1) { FloatArray(3) { 0f } }
     lateinit var looperRespeck: Looper
     private lateinit var respeckLiveUpdateReceiver: BroadcastReceiver
     val filterTestRespeck = IntentFilter(Constants.ACTION_RESPECK_LIVE_BROADCAST)
@@ -97,34 +102,30 @@ class PredictFragment : Fragment() {
     // TODO
     private val task1ImgMap = mapOf(
         0 to R.drawable.sitting,
-        1 to R.drawable.standing,
+        1 to R.drawable.lying,
         2 to R.drawable.lying,
-        3 to R.drawable.sitting,
-        4 to R.drawable.sitting,
-        5 to R.drawable.sitting,
-        6 to R.drawable.sitting,
+        3 to R.drawable.lying,
+        4 to R.drawable.lying,
+        6 to R.drawable.standing,
         7 to R.drawable.sitting,
         8 to R.drawable.sitting,
         9 to R.drawable.sitting,
         10 to R.drawable.sitting,
         11 to R.drawable.sitting,
     )
-    private val task2Map = mapOf(
-        0 to "sitting/standing + normalBreath",
-        1 to "lyingLeft + normalBreath",
-        2 to "lyingRight + normalBreath",
-        3 to "lyingBack + normalBreath",
-        4 to "lyingStomach + normalBreath",
-        5 to "sitting/standing + coughing",
-        6 to "lyingLeft + coughing",
-        7 to "lyingRight + coughing",
-        8 to "lyingBack + coughing",
-        9 to "lyingStomach + coughing",
-        10 to "sitting/standing + hyperventilating",
-        11 to "lyingLeft + hyperventilating",
-        12 to "lyingRight + hyperventilating",
-        13 to "lyingBack + hyperventilating",
-        14 to "lyingStomach + hyperventilating",
+
+    private val task2ActivityMap = mapOf(
+        0 to "sitting/standing",
+        1 to "lyingLeft",
+        2 to "lyingRight",
+        3 to "lyingBack",
+        4 to "lyingStomach",
+    )
+
+    private val task2SymptomMap = mapOf(
+        0 to "normalBreath",
+        1 to "coughing",
+        2 to "hyperventilating"
     )
 
     override fun onCreateView(
@@ -194,7 +195,12 @@ class PredictFragment : Fragment() {
                 interpreter11?.close()
                 interpreter12?.close()
                 interpreter13?.close()
-                interpreter2?.close()
+                interpreter21?.close()
+                interpreter22?.close()
+                interpreter23?.close()
+                interpreter24?.close()
+                interpreter25?.close()
+                interpreter26?.close()
                 loadPredictTask()
             }
 
@@ -322,8 +328,18 @@ class PredictFragment : Fragment() {
             interpreter13 = Interpreter(modelByteBuffer)
         } else if (currentTask == 1) {
             // 加载模型和其他初始化操作 for task2
-            var modelByteBuffer = loadModelFile("15ClassModelTask2Lite.tflite")
-            interpreter2 = Interpreter(modelByteBuffer)
+            var modelByteBuffer = loadModelFile("Task2OnlineActivityLite.tflite")
+            interpreter21 = Interpreter(modelByteBuffer)
+            modelByteBuffer = loadModelFile("Task2OnlineSittingLite.tflite")
+            interpreter22 = Interpreter(modelByteBuffer)
+            modelByteBuffer = loadModelFile("Task2OnlineLeftLite.tflite")
+            interpreter23 = Interpreter(modelByteBuffer)
+            modelByteBuffer = loadModelFile("Task2OnlineRightLite.tflite")
+            interpreter24 = Interpreter(modelByteBuffer)
+            modelByteBuffer = loadModelFile("Task2OnlineBackLite.tflite")
+            interpreter25 = Interpreter(modelByteBuffer)
+            modelByteBuffer = loadModelFile("Task2OnlineStomachLite.tflite")
+            interpreter26 = Interpreter(modelByteBuffer)
         }
     }
 
@@ -341,11 +357,11 @@ class PredictFragment : Fragment() {
             currentActivityImage = task1ImgMap[currentActivityIndex]!!
         } else if (currentTask == 1) {
             val fftData = getFFTData()
-            currentActivityIndex = predictTask2(fftData)
-
-            currentActivity = task2Map[currentActivityIndex]!!
-            // TODO
-            currentActivityImage = R.drawable.unknown
+            val activityIndex = predictTask2Activity(fftData)
+            val currentSymptomIndex = predictTask2Symptom(fftData, currentActivityIndex)
+            currentActivity = "${task2ActivityMap[activityIndex]!!} + ${task2SymptomMap[currentSymptomIndex]!!}"
+            currentActivityImage = task1ImgMap[activityIndex]!!
+            currentActivityIndex = activityIndex*3 + currentSymptomIndex
         }
         return currentActivityIndex
     }
@@ -413,67 +429,49 @@ class PredictFragment : Fragment() {
     }
 
     private fun predictStationOrNonstation(): Int {
-
         interpreter11?.run(rawInputDataBuff, binaryOutputDataBuff)
-
-        var maxIndex = 0
-        var maxValue = binaryOutputDataBuff[0][0]
-
-        for (i in 1 until binaryOutputDataBuff[0].size) {
-            if (binaryOutputDataBuff[0][i] > maxValue) {
-                maxValue = binaryOutputDataBuff[0][i]
-                maxIndex = i
-            }
-        }
-
-        return maxIndex
+        return getMaxIndex(binaryOutputDataBuff)
     }
 
     private fun predictStation(): Int {
         interpreter12?.run(rawInputDataBuff, stationOutputDataBuff)
-
-        var maxIndex = 0
-        var maxValue = stationOutputDataBuff[0][0]
-
-        for (i in 1 until stationOutputDataBuff[0].size) {
-            if (stationOutputDataBuff[0][i] > maxValue) {
-                maxValue = stationOutputDataBuff[0][i]
-                maxIndex = i
-            }
-        }
-
-        return maxIndex
+        return getMaxIndex(stationOutputDataBuff)
     }
 
     private fun predictNonstation(fftData: FloatArray): Int {
         val inputDataBuffer = arrayOf(rawInputDataBuff[0] + fftData)
         interpreter13?.run(inputDataBuffer, nonStationOutputDataBuff)
-
-        var maxIndex = 0
-        var maxValue = nonStationOutputDataBuff[0][0]
-
-        for (i in 1 until nonStationOutputDataBuff[0].size) {
-            if (nonStationOutputDataBuff[0][i] > maxValue) {
-                maxValue = nonStationOutputDataBuff[0][i]
-                maxIndex = i
-            }
-        }
-        return maxIndex + 5
+        return getMaxIndex(nonStationOutputDataBuff) + 5
     }
 
-    private fun predictTask2(fftData: FloatArray): Int {
+    private fun predictTask2Activity(fftData: FloatArray): Int {
         val inputDataBuffer = arrayOf(rawInputDataBuff[0] + fftData)
-        interpreter2?.run(inputDataBuffer, task2OutputDataBuff)
-        var maxIndex = 0
-        var maxValue = task2OutputDataBuff[0][0]
+        interpreter21?.run(inputDataBuffer, task2ActivityOutputDataBuff)
+        return getMaxIndex(task2ActivityOutputDataBuff)
+    }
 
-        for (i in 1 until task2OutputDataBuff[0].size) {
-            if (task2OutputDataBuff[0][i] > maxValue) {
-                maxValue = task2OutputDataBuff[0][i]
+    private fun predictTask2Symptom(fftData: FloatArray, currentActivityIndex: Int): Int {
+        val inputDataBuffer = arrayOf(rawInputDataBuff[0] + fftData)
+        when (currentActivityIndex) {
+            0 -> interpreter22?.run(inputDataBuffer, task2SymptomOutputDataBuff)
+            1 -> interpreter23?.run(inputDataBuffer, task2SymptomOutputDataBuff)
+            2 -> interpreter24?.run(inputDataBuffer, task2SymptomOutputDataBuff)
+            3 -> interpreter25?.run(inputDataBuffer, task2SymptomOutputDataBuff)
+            4 -> interpreter26?.run(inputDataBuffer, task2SymptomOutputDataBuff)
+        }
+        return getMaxIndex(task2SymptomOutputDataBuff)
+    }
+
+    private fun getMaxIndex(outputDataBuff: Array<FloatArray>): Int {
+        var maxIndex = 0
+        var maxValue = outputDataBuff[0][0]
+
+        for (i in 1 until outputDataBuff[0].size) {
+            if (outputDataBuff[0][i] > maxValue) {
+                maxValue = outputDataBuff[0][i]
                 maxIndex = i
             }
         }
-
         return maxIndex
     }
 
@@ -536,7 +534,12 @@ class PredictFragment : Fragment() {
         interpreter11?.close()
         interpreter12?.close()
         interpreter13?.close()
-        interpreter2?.close()
+        interpreter21?.close()
+        interpreter22?.close()
+        interpreter23?.close()
+        interpreter24?.close()
+        interpreter25?.close()
+        interpreter26?.close()
     }
 
     override fun onDestroy() {
