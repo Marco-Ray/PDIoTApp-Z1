@@ -16,15 +16,20 @@ import android.text.TextWatcher
 import android.util.Log
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.ViewModelProvider
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.specknet.pdiotapp.R
 import com.specknet.pdiotapp.barcode.BarcodeActivity
+import com.specknet.pdiotapp.utils.BLEStatusViewModel
 import com.specknet.pdiotapp.utils.Constants
+import com.specknet.pdiotapp.utils.TaskViewModel
 import com.specknet.pdiotapp.utils.Utils
 import kotlinx.android.synthetic.main.activity_connecting.*
 import java.util.*
-import kotlin.experimental.and
+
 
 class ConnectingActivity : AppCompatActivity() {
 
@@ -35,6 +40,7 @@ class ConnectingActivity : AppCompatActivity() {
     private lateinit var respeckID: EditText
     private lateinit var connectSensorsButton: Button
     private lateinit var restartConnectionButton: Button
+    private lateinit var goBackButton: ImageView
 //    private lateinit var disconnectRespeckButton: Button
 
     // Thingy
@@ -49,6 +55,9 @@ class ConnectingActivity : AppCompatActivity() {
     val MIME_TEXT_PLAIN = "application/vnd.bluetooth.le.oob"
     private val TAG = "NFCReader"
 
+    private lateinit var respeckConnectionReceiver: BroadcastReceiver
+    private lateinit var thingyConnectionReceiver: BroadcastReceiver
+    private lateinit var bleStatusViewModel: BLEStatusViewModel
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_connecting)
@@ -58,6 +67,7 @@ class ConnectingActivity : AppCompatActivity() {
         respeckID = findViewById(R.id.respeck_code)
         connectSensorsButton = findViewById(R.id.connect_sensors_button)
         restartConnectionButton = findViewById(R.id.restart_service_button)
+        goBackButton = findViewById(R.id.button_back)
 
         thingyID = findViewById(R.id.thingy_code)
 
@@ -87,6 +97,10 @@ class ConnectingActivity : AppCompatActivity() {
 
         restartConnectionButton.setOnClickListener {
             startSpeckService()
+        }
+
+        goBackButton.setOnClickListener {
+            finish()
         }
 
 
@@ -373,5 +387,4 @@ class ConnectingActivity : AppCompatActivity() {
         }
 
     }
-
 }

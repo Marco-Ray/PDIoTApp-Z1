@@ -23,14 +23,17 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.internal.zzhu.runOnUiThread
 import com.specknet.pdiotapp.MainActivity
 import com.specknet.pdiotapp.R
 import com.specknet.pdiotapp.database.RecordDao
 import com.specknet.pdiotapp.database.Records
+import com.specknet.pdiotapp.utils.BLEStatusViewModel
 import com.specknet.pdiotapp.utils.Constants
 import com.specknet.pdiotapp.utils.RESpeckLiveData
+import com.specknet.pdiotapp.utils.TaskViewModel
 import com.specknet.pdiotapp.utils.UserInfoViewModel
 import kotlinx.android.synthetic.main.fragment_predict.togglePredict
 import kotlinx.coroutines.launch
@@ -74,6 +77,8 @@ class PredictFragment : Fragment() {
     private var currentTask: Int = 0
     private var currentActivity: String = "Unknown"
     private var currentActivityImage: Int = R.drawable.unknown
+
+    private lateinit var bleStatusViewModel: BLEStatusViewModel
 
     // Labels
     private val task1Map = mapOf(
@@ -152,6 +157,24 @@ class PredictFragment : Fragment() {
                  userName.text = newData
                  togglePredict.isEnabled = true
                  togglePredict.text = "Start Record"
+            }
+        })
+
+        val respeckStatus = rootView.findViewById<TextView>(R.id.respeck_status)
+        bleStatusViewModel = ViewModelProvider(requireActivity()).get(BLEStatusViewModel::class.java)
+        bleStatusViewModel.respeckStatus.observe(viewLifecycleOwner, Observer {newStatus ->
+            respeckStatus.text = if (newStatus) {
+                "Respeck: Connected"
+            } else {
+                "Respeck: Disconnected"
+            }
+        })
+        val thingyStatus = rootView.findViewById<TextView>(R.id.thingy_status)
+        bleStatusViewModel.thingyStatus.observe(viewLifecycleOwner, Observer {newStatus ->
+            thingyStatus.text = if (newStatus) {
+                "Thingy: Connected"
+            } else {
+                "Thingy: Disconnected"
             }
         })
 
@@ -329,7 +352,6 @@ class PredictFragment : Fragment() {
 
     private fun recordActivity(userName: String, previousTime: Date,currentActivityIndex: Int, task: Int) {
         // Example: Insert data into the database
-        println("Insert")
         currentTime = Date()
         val duration = calDurationInSeconds(previousTime, currentTime)
         // adjust granularity
@@ -341,7 +363,6 @@ class PredictFragment : Fragment() {
                 activity = currentActivityIndex,
                 duration = calDurationInSeconds(previousTime, currentTime)
             )
-            println(entity)
             insertData(entity)
         }
     }
@@ -404,7 +425,6 @@ class PredictFragment : Fragment() {
                 maxIndex = i
             }
         }
-        println(maxIndex)
 
         return maxIndex
     }
@@ -421,7 +441,6 @@ class PredictFragment : Fragment() {
                 maxIndex = i
             }
         }
-        println("Station: $maxIndex")
 
         return maxIndex
     }
@@ -439,14 +458,11 @@ class PredictFragment : Fragment() {
                 maxIndex = i
             }
         }
-        println("Non Station: $maxIndex")
-
         return maxIndex + 5
     }
 
     private fun predictTask2(fftData: FloatArray): Int {
         val inputDataBuffer = arrayOf(rawInputDataBuff[0] + fftData)
-        println(inputDataBuffer[0].size)
         interpreter2?.run(inputDataBuffer, task2OutputDataBuff)
         var maxIndex = 0
         var maxValue = task2OutputDataBuff[0][0]
@@ -457,7 +473,6 @@ class PredictFragment : Fragment() {
                 maxIndex = i
             }
         }
-        println("Task2: $maxIndex")
 
         return maxIndex
     }
@@ -495,7 +510,6 @@ class PredictFragment : Fragment() {
         val fftOutput = FloatArray(26) { 0f }
 
         val newInputSignal = hanningWindow(inputSignal)
-        println("hanning: $newInputSignal")
 
         // 创建一个 DoubleFFT_1D 对象，传入输入信号的大小（作为 long 类型）
         val fft = DoubleFFT_1D(newInputSignal.size.toLong())

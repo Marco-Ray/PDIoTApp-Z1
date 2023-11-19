@@ -1,41 +1,7 @@
 package com.specknet.pdiotapp
 
-
-//
-//class MainActivity : AppCompatActivity() {
-//
-//    override fun onCreate(savedInstanceState: Bundle?) {
-//        super.onCreate(savedInstanceState)
-//        setContentView(R.layout.activity_main)
-//        loadFragment(HomeFragment())
-//        bottomNav.setOnNavigationItemSelectedListener {
-//            when (it.itemId) {
-//                R.id.home -> {
-//                    loadFragment(HomeFragment())
-//                    true
-//                }
-//                R.id.predict -> {
-//                    loadFragment(PredictFragment())
-//                    true
-//                }
-//                R.id.account -> {
-//                    loadFragment(AccountFragment())
-//                    true
-//                }
-//
-//            }
-//            true
-//        }
-//    }
-//    private fun loadFragment(fragment: Fragment){
-//        val transaction = supportFragmentManager.beginTransaction()
-//        transaction.replace(R.id.container,fragment)
-//        transaction.commit()
-//    }
-//
-//}
-
 import android.Manifest
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -53,6 +19,7 @@ import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
 import androidx.lifecycle.ViewModelProvider
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.room.Room
 import com.google.android.material.snackbar.Snackbar
 import com.specknet.pdiotapp.bluetooth.BluetoothSpeckService
@@ -60,6 +27,7 @@ import com.specknet.pdiotapp.database.RecordDatabase
 import com.specknet.pdiotapp.live.LiveDataFragment
 import com.specknet.pdiotapp.onboarding.OnBoardingActivity
 import com.specknet.pdiotapp.predict.PredictFragment
+import com.specknet.pdiotapp.utils.BLEStatusViewModel
 import com.specknet.pdiotapp.utils.Constants
 import com.specknet.pdiotapp.utils.UserInfoViewModel
 import com.specknet.pdiotapp.utils.Utils
@@ -90,6 +58,10 @@ class MainActivity : AppCompatActivity() {
 
     // save userInfo
     val globalBundle = Bundle()
+
+    private lateinit var respeckConnectionReceiver: BroadcastReceiver
+    private lateinit var thingyConnectionReceiver: BroadcastReceiver
+    private lateinit var bleStatusViewModel: BLEStatusViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -166,6 +138,32 @@ class MainActivity : AppCompatActivity() {
         // register a broadcast receiver for respeck status
         filter.addAction(Constants.ACTION_RESPECK_CONNECTED)
         filter.addAction(Constants.ACTION_RESPECK_DISCONNECTED)
+
+
+        bleStatusViewModel = ViewModelProvider(this).get(BLEStatusViewModel::class.java)
+
+        respeckConnectionReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                if (intent.action == Constants.ACTION_RESPECK_CONNECTION_STATUS) {
+                    val isConnected =
+                        intent.getBooleanExtra(Constants.EXTRA_BLUETOOTH_CONNECTED, false)
+                    // 根据连接状态执行相应操作
+                    println("RESpeck status change: $isConnected")
+                    bleStatusViewModel.updateREspeckStatus(isConnected)
+                }
+            }
+        }
+
+        thingyConnectionReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                if (intent.action == Constants.ACTION_THINGY_CONNECTION_STATUS) {
+                    val isConnected =
+                        intent.getBooleanExtra(Constants.EXTRA_BLUETOOTH_CONNECTED, false)
+                    // 根据连接状态执行相应操作
+                    bleStatusViewModel.updateThingyStatus(isConnected)
+                }
+            }
+        }
 
     }
 
@@ -280,8 +278,22 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        val intentFilter1 = IntentFilter(Constants.ACTION_RESPECK_CONNECTION_STATUS)
+        LocalBroadcastManager.getInstance(this)
+            .registerReceiver(respeckConnectionReceiver, intentFilter1)
+
+        val intentFilter2 = IntentFilter(Constants.ACTION_THINGY_CONNECTION_STATUS)
+        LocalBroadcastManager.getInstance(this)
+            .registerReceiver(respeckConnectionReceiver, intentFilter2)
+    }
+
     override fun onDestroy() {
         super.onDestroy()
+        // 在 onPause 中取消注册广播接收器，以避免内存泄漏
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(respeckConnectionReceiver)
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(thingyConnectionReceiver)
         System.exit(0)
     }
 

@@ -1,5 +1,6 @@
 package com.specknet.pdiotapp.utils;
 
+import android.content.Intent;
 import android.net.Uri;
 
 import java.text.SimpleDateFormat;
@@ -50,6 +51,13 @@ public class Constants {
     public static final int RECONNECTION_TIMEOUT_MILLIS = 10000;
     public static final long RESPECK_CHARACTERISTIC_CHANGE_TIMEOUT_MS = 4000; // 4 seconds
     public static final String CSV_DELIMITER = ","; // yes it's just a comma :)
+    public static final String ACTION_RESPECK_CONNECTION_STATUS = "com.specknet.pdiotapp.ACTION_BLUETOOTH_CONNECTION_STATUS";
+    public static final String ACTION_THINGY_CONNECTION_STATUS = "com.specknet.pdiotapp.ACTION_BLUETOOTH_CONNECTION_STATUS";
+    public static final String EXTRA_BLUETOOTH_CONNECTED = "com.specknet.pdiotapp.EXTRA_BLUETOOTH_CONNECTED";
+    // 连接状态常量
+    public static final boolean BLUETOOTH_CONNECTED = true;
+    public static final boolean BLUETOOTH_DISCONNECTED = false;
+
 
     // Information for config content provider
     public static class Config {

@@ -24,6 +24,7 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.polidea.rxandroidble.RxBleClient;
 import com.polidea.rxandroidble.RxBleConnection;
@@ -398,6 +399,8 @@ public class BluetoothSpeckService extends Service {
 
         mRESpeckDevice.observeConnectionStateChanges().subscribe(connectionState -> {
             if (connectionState == RxBleConnection.RxBleConnectionState.DISCONNECTED && mIsServiceRunning) {
+                // BLE disconnected
+                broadcastRESpeckConnectionStatus(false);
                 Log.d(TAG, "RESpeck disconnected");
                 Intent respeckDisconnectedIntent = new Intent(Constants.ACTION_RESPECK_DISCONNECTED);
                 sendBroadcast(respeckDisconnectedIntent);
@@ -426,6 +429,9 @@ public class BluetoothSpeckService extends Service {
                         }
                     }, Constants.RECONNECTION_TIMEOUT_MILLIS);
                 }
+            } else {
+                // BLE connected
+                broadcastRESpeckConnectionStatus(true);
             }
         }, throwable -> {
             Log.e(TAG, "Error occured while listening to RESpeck connection state changes: " + throwable.getMessage());
@@ -466,6 +472,8 @@ public class BluetoothSpeckService extends Service {
 
         mThingyDevice.observeConnectionStateChanges().subscribe(connectionState -> {
             if (connectionState == RxBleConnection.RxBleConnectionState.DISCONNECTED && mIsServiceRunning) {
+                broadcastThingyConnectionStatus(false);
+
                 Log.d(TAG, "Thingy disconnected");
                 Intent thingyDisconnectedIntent = new Intent(Constants.ACTION_THINGY_DISCONNECTED);
                 sendBroadcast(thingyDisconnectedIntent);
@@ -494,6 +502,8 @@ public class BluetoothSpeckService extends Service {
                         }
                     }, Constants.RECONNECTION_TIMEOUT_MILLIS);
                 }
+            } else {
+                broadcastThingyConnectionStatus(true);
             }
         }, throwable -> {
             Log.e(TAG, "Error occured while listening to RESpeck connection state changes: " + throwable.getMessage());
@@ -736,5 +746,19 @@ public class BluetoothSpeckService extends Service {
     public boolean onUnbind(Intent intent) {
         return super.onUnbind(intent);
     }
+
+    // 在 BluetoothSpeckService 中的某个位置
+    private void broadcastRESpeckConnectionStatus(boolean isConnected) {
+        Intent intent = new Intent(Constants.ACTION_RESPECK_CONNECTION_STATUS);
+        intent.putExtra(Constants.EXTRA_BLUETOOTH_CONNECTED, isConnected);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+    }
+
+    private void broadcastThingyConnectionStatus(boolean isConnected) {
+        Intent intent = new Intent(Constants.ACTION_THINGY_CONNECTION_STATUS);
+        intent.putExtra(Constants.EXTRA_BLUETOOTH_CONNECTED, isConnected);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+    }
+
 
 }
