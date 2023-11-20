@@ -244,7 +244,6 @@ class PredictFragment : Fragment() {
         val textView = rootView.findViewById<TextView>(R.id.predicted_activity)
         // Find the ImageView by its ID
         val imageView = rootView.findViewById<ImageView>(R.id.current_activity_image)
-        val borderDrawable = imageView.background as GradientDrawable
 
         // 设置点击事件监听器
         rootView.setOnClickListener {
@@ -275,12 +274,14 @@ class PredictFragment : Fragment() {
 
 
         currentSymptomIndexLiveData.observe(viewLifecycleOwner) { newSymptomIndex ->
-            borderDrawable.setStroke(5,
-                if (newSymptomIndex in arrayOf(1,2)) {
-                    ContextCompat.getColor(requireContext(),R.color.red)
-                } else {
-                    ContextCompat.getColor(requireContext(),R.color.black)
-                })
+            if (newSymptomIndex in arrayOf(1,2)) {
+                val redColor = ContextCompat.getColor(requireContext(), R.color.red)
+                textView.setTextColor(redColor)
+            } else {
+                val blackColor = ContextCompat.getColor(requireContext(), R.color.black)
+                textView.setTextColor(blackColor)
+            }
+
         }
 
         // set up the broadcast receiver
