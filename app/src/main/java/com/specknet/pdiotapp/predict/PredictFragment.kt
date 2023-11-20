@@ -34,6 +34,7 @@ import com.specknet.pdiotapp.database.RecordDao
 import com.specknet.pdiotapp.database.Records
 import com.specknet.pdiotapp.utils.BLEStatusViewModel
 import com.specknet.pdiotapp.utils.Constants
+import com.specknet.pdiotapp.utils.CustomSpinnerAdapter
 import com.specknet.pdiotapp.utils.RESpeckLiveData
 import com.specknet.pdiotapp.utils.UserInfoViewModel
 import kotlinx.android.synthetic.main.fragment_predict.togglePredict
@@ -194,7 +195,7 @@ class PredictFragment : Fragment() {
         val spinner = rootView.findViewById<Spinner>(R.id.spinner)
         // 创建一个适配器（可以使用 ArrayAdapter、CursorAdapter 等）
         val taskList = listOf("Task1", "Task2", "Task3")
-        val adapter = ArrayAdapter<String>(requireContext(), android.R.layout.simple_spinner_item, taskList)
+        val adapter = CustomSpinnerAdapter(requireContext(), taskList)
         // 设置适配器
         spinner.adapter = adapter
         // 设置选择监听器

@@ -15,6 +15,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.github.mikephil.charting.charts.HorizontalBarChart
+import com.specknet.pdiotapp.utils.CustomSpinnerAdapter
 import com.specknet.pdiotapp.utils.TaskViewModel
 import java.util.Date
 
@@ -47,8 +48,7 @@ class HistoryFragment : Fragment() {
         val spinner = view.findViewById<Spinner>(R.id.spinner)
         // 创建一个适配器（可以使用 ArrayAdapter、CursorAdapter 等）
         val taskList = listOf("Task1", "Task2", "Task3")
-        val adapter = ArrayAdapter<String>(requireContext(), android.R.layout.simple_spinner_item, taskList)
-        // 设置适配器
+        val adapter = CustomSpinnerAdapter(requireContext(), taskList)        // 设置适配器
         spinner.adapter = adapter
         // 设置选择监听器
         spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
