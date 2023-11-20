@@ -37,9 +37,9 @@ class BarcodeActivity : AppCompatActivity() {
 
         setContentView(R.layout.activity_barcode)
 
+        goBackButton = findViewById(R.id.button_back)
         goBackButton.setOnClickListener {
-            val intent = Intent(this, ConnectingActivity::class.java)
-            startActivity(intent)
+            finish()
         }
 
 
