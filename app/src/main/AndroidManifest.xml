@@ -25,10 +25,12 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
+        android:largeHeap = "true"
         android:theme="@style/AppTheme">
         <activity
             android:name=".barcode.BarcodeActivity"
-            android:screenOrientation="portrait" />
+            android:screenOrientation="portrait"
+            android:exported="true"/>
         <activity
             android:name=".bluetooth.ConnectingActivity"
             android:screenOrientation="portrait"
@@ -55,9 +57,6 @@
                 <action android:name="com.specknet.pdiotapp.RESPECK_BROADCAST" />
             </intent-filter>
         </activity>
-<!--        <activity-->
-<!--            android:name=".predict.PredictingActivity"-->
-<!--            android:screenOrientation="portrait"/>-->
 
 
         <service
@@ -71,10 +70,12 @@
 
         <activity
             android:name=".onboarding.OnBoardingActivity"
-            android:screenOrientation="portrait" />
+            android:screenOrientation="portrait"
+            android:exported="true"/>
         <activity
             android:name=".RecordingActivity"
-            android:screenOrientation="portrait" />
+            android:screenOrientation="portrait"
+            android:exported="true"/>
         <activity
             android:name=".MainActivity"
             android:screenOrientation="portrait"

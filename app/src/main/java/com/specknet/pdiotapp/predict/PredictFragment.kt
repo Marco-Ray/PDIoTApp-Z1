@@ -4,7 +4,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
@@ -14,7 +13,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
-import android.widget.ArrayAdapter
 import android.widget.ImageView
 import android.widget.Spinner
 import android.widget.TextView
@@ -82,6 +80,7 @@ class PredictFragment : Fragment() {
     lateinit var looperRespeck: Looper
     private lateinit var respeckLiveUpdateReceiver: BroadcastReceiver
     val filterTestRespeck = IntentFilter(Constants.ACTION_RESPECK_LIVE_BROADCAST)
+    private lateinit var handlerThread: HandlerThread
 
     private lateinit var recordDao: RecordDao
     private lateinit var currentDate: String
@@ -152,6 +151,7 @@ class PredictFragment : Fragment() {
         // Get the database instance
         recordDao = MainActivity.database.RecordDao()
         loadPredictTask()
+
 
         // Example: Query data from the database
 //        queryData()
@@ -284,6 +284,25 @@ class PredictFragment : Fragment() {
 
         }
 
+        handlerThread = HandlerThread("InterpreterThread")
+        handlerThread.start()
+        val handler = Handler(handlerThread.looper)
+        handler.post {
+            // TODO
+            while (true) {
+                println("BackupPredict")
+                val currentActivityIndex = predictTask()
+                currentActivityIndexLiveData.postValue(currentActivityIndex)
+                runOnUiThread {
+                    textView.text = "$currentActivity"
+    //                         Set the new image resource
+                    imageView.setImageResource(currentActivityImage)
+                }
+
+                Thread.sleep(1000) // 1000 毫秒，可以根据需求进行调整
+            }
+        }
+
         // set up the broadcast receiver
         respeckLiveUpdateReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
@@ -299,21 +318,6 @@ class PredictFragment : Fragment() {
                     Log.d("Live", "onReceive: liveData = " + liveData)
 
                     updateBuffer(liveData)
-                    // TODO
-                    if (counter % 25 == 0) {
-                        val currentActivityIndex = predictTask()
-                        currentActivityIndexLiveData.postValue(currentActivityIndex)
-                        counter = 0
-                    }
-                    counter += 1
-
-
-                    Log.d("Live", "Predicted " + currentActivity + "for" + liveData)
-                    runOnUiThread {
-                        textView.text = "$currentActivity"
-//                         Set the new image resource
-                        imageView.setImageResource(currentActivityImage)
-                    }
                 }
             }
         }
@@ -379,15 +383,16 @@ class PredictFragment : Fragment() {
             // 加载模型和其他初始化操作 for task2
             var modelByteBuffer = loadModelFile("Task2OnlineActivityLite.tflite")
             interpreter21 = Interpreter(modelByteBuffer)
-            modelByteBuffer = loadModelFile("Task2OnlineSittingLite.tflite")
+            modelByteBuffer = loadModelFile("Task2OnlineSittingLite-2.tflite")
             interpreter22 = Interpreter(modelByteBuffer)
-            modelByteBuffer = loadModelFile("Task2OnlineLeftLite.tflite")
+            modelByteBuffer = loadModelFile("Task2OnlineLeftLite-2.tflite")
             interpreter23 = Interpreter(modelByteBuffer)
-            modelByteBuffer = loadModelFile("Task2OnlineRightLite.tflite")
+            modelByteBuffer = loadModelFile("Task2OnlineRightLite-2.tflite")
             interpreter24 = Interpreter(modelByteBuffer)
             modelByteBuffer = loadModelFile("Task2OnlineBackLite.tflite")
+
             interpreter25 = Interpreter(modelByteBuffer)
-            modelByteBuffer = loadModelFile("Task2OnlineStomachLite.tflite")
+            modelByteBuffer = loadModelFile("Task2OnlineStomachLite-2.tflite")
             interpreter26 = Interpreter(modelByteBuffer)
         } else {
             // 加载模型和其他初始化操作 for task2
@@ -629,5 +634,6 @@ class PredictFragment : Fragment() {
         super.onDestroy()
         requireActivity().unregisterReceiver(respeckLiveUpdateReceiver)
         looperRespeck.quit()
+        handlerThread.quit()
     }
 }
