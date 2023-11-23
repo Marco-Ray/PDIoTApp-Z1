@@ -10,6 +10,8 @@ import android.os.Bundle
 import android.util.Log
 import android.util.SparseArray
 import android.view.SurfaceHolder
+import android.widget.Button
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -19,6 +21,7 @@ import com.google.android.gms.vision.Detector
 import com.google.android.gms.vision.barcode.Barcode
 import com.google.android.gms.vision.barcode.BarcodeDetector
 import com.specknet.pdiotapp.R
+import com.specknet.pdiotapp.bluetooth.ConnectingActivity
 import kotlinx.android.synthetic.main.activity_barcode.*
 import java.lang.Exception
 
@@ -27,10 +30,18 @@ class BarcodeActivity : AppCompatActivity() {
     private val requestCodeCameraPermission = 1001
     private lateinit var cameraSource: CameraSource
     private lateinit var detector: BarcodeDetector
+    private lateinit var goBackButton: ImageView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContentView(R.layout.activity_barcode)
+
+        goBackButton = findViewById(R.id.button_back)
+        goBackButton.setOnClickListener {
+            finish()
+        }
+
 
         if(ContextCompat.checkSelfPermission(
                 this@BarcodeActivity,

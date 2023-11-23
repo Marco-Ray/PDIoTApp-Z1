@@ -1,37 +1,41 @@
 package com.specknet.pdiotapp
 
 import android.Manifest
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Button
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentTransaction
+import androidx.lifecycle.ViewModelProvider
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.room.Room
 import com.google.android.material.snackbar.Snackbar
 import com.specknet.pdiotapp.bluetooth.BluetoothSpeckService
-import com.specknet.pdiotapp.bluetooth.ConnectingActivity
-import com.specknet.pdiotapp.live.LiveDataActivity
+import com.specknet.pdiotapp.database.RecordDatabase
+import com.specknet.pdiotapp.live.LiveDataFragment
 import com.specknet.pdiotapp.onboarding.OnBoardingActivity
-import com.specknet.pdiotapp.predict.PredictingActivity
+import com.specknet.pdiotapp.predict.PredictFragment
+import com.specknet.pdiotapp.utils.BLEStatusViewModel
 import com.specknet.pdiotapp.utils.Constants
+import com.specknet.pdiotapp.utils.UserInfoViewModel
 import com.specknet.pdiotapp.utils.Utils
-import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.activity_main.bottomNav
+import kotlinx.android.synthetic.main.activity_main.coordinatorLayout
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
-
-    // buttons and textviews
-    lateinit var liveProcessingButton: Button
-    lateinit var pairingButton: Button
-    lateinit var recordButton: Button
-    lateinit var predictButton: Button
-
 
     // permissions
     lateinit var permissionAlertDialog: AlertDialog.Builder
@@ -48,9 +52,31 @@ class MainActivity : AppCompatActivity() {
 
     var isUserFirstTime = false
 
+    // buttons and textviews
+    lateinit var loginButton: Button
+    lateinit var signupButton: Button
+
+    // save userInfo
+    val globalBundle = Bundle()
+
+    private lateinit var respeckConnectionReceiver: BroadcastReceiver
+    private lateinit var thingyConnectionReceiver: BroadcastReceiver
+    private lateinit var bleStatusViewModel: BLEStatusViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        loadFragment(HomeFragment())
+        LoginFragment().arguments = globalBundle
+
+        val newLocale = Locale("en", "UK")
+        Locale.setDefault(newLocale)
+
+        database = Room.databaseBuilder(
+            this,
+            RecordDatabase::class.java,
+            "RecordDatabase"
+        ).build()
 
         // check whether the onboarding screen should be shown
         val sharedPreferences = getSharedPreferences(Constants.PREFERENCES_FILE, Context.MODE_PRIVATE)
@@ -64,14 +90,46 @@ class MainActivity : AppCompatActivity() {
             startActivity(introIntent)
         }
 
-        liveProcessingButton = findViewById(R.id.live_button)
-        pairingButton = findViewById(R.id.ble_button)
-        recordButton = findViewById(R.id.record_button)
-        predictButton = findViewById(R.id.predict_button)
+        // 获取 ViewModel
+        val userModel = ViewModelProvider(this).get(UserInfoViewModel::class.java)
+
+        bottomNav.setOnNavigationItemSelectedListener {
+            when (it.itemId) {
+                R.id.home -> {
+                    loadFragment(HomeFragment())
+                    true
+                }
+                R.id.connect -> {
+                    loadFragment(LiveDataFragment())
+                    true
+                }
+                R.id.predict -> {
+                    loadFragment(PredictFragment())
+                    true
+                }
+                R.id.history -> {
+                    if (userModel.userName.value != null) {
+                        loadFragment(HistoryFragment())
+                        true
+                    } else {
+                        showToast("Please login first.")
+                        loadFragment(AccountFragment())
+                        false
+                    }
+                }
+                R.id.account -> {
+                    loadFragment(AccountFragment())
+                    true
+                }
+
+            }
+            true
+        }
 
         permissionAlertDialog = AlertDialog.Builder(this)
 
-        setupClickListeners()
+
+//        setupClickListeners()
 
         setupPermissions()
 
@@ -81,31 +139,68 @@ class MainActivity : AppCompatActivity() {
         filter.addAction(Constants.ACTION_RESPECK_CONNECTED)
         filter.addAction(Constants.ACTION_RESPECK_DISCONNECTED)
 
+
+        bleStatusViewModel = ViewModelProvider(this).get(BLEStatusViewModel::class.java)
+
+        respeckConnectionReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                if (intent.action == Constants.ACTION_RESPECK_CONNECTION_STATUS) {
+                    val isConnected =
+                        intent.getBooleanExtra(Constants.EXTRA_BLUETOOTH_CONNECTED, false)
+                    // 根据连接状态执行相应操作
+                    println("RESpeck status change: $isConnected")
+                    bleStatusViewModel.updateREspeckStatus(isConnected)
+                }
+            }
+        }
+
+        thingyConnectionReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                if (intent.action == Constants.ACTION_THINGY_CONNECTION_STATUS) {
+                    val isConnected =
+                        intent.getBooleanExtra(Constants.EXTRA_BLUETOOTH_CONNECTED, false)
+                    // 根据连接状态执行相应操作
+                    bleStatusViewModel.updateThingyStatus(isConnected)
+                }
+            }
+        }
+
     }
 
-    fun setupClickListeners() {
-        liveProcessingButton.setOnClickListener {
-            val intent = Intent(this, LiveDataActivity::class.java)
-            startActivity(intent)
-        }
+//    private fun setupClickListeners() {
+//        liveProcessingButton.setOnClickListener {
+//            val intent = Intent(this, LiveDataActivity::class.java)
+//            startActivity(intent)
+//        }
+//
+//        pairingButton.setOnClickListener {
+//            val intent = Intent(this, ConnectingActivity::class.java)
+//            startActivity(intent)
+//        }
+//
+//        recordButton.setOnClickListener {
+//            val intent = Intent(this, RecordingActivity::class.java)
+//            startActivity(intent)
+//        }
+//
+//        predictButton.setOnClickListener {
+//            val intent = Intent(this, PredictingActivity::class.java)
+//            startActivity(intent)
+//        }
+//    }
 
-        pairingButton.setOnClickListener {
-            val intent = Intent(this, ConnectingActivity::class.java)
-            startActivity(intent)
-        }
-
-        recordButton.setOnClickListener {
-            val intent = Intent(this, RecordingActivity::class.java)
-            startActivity(intent)
-        }
-
-        predictButton.setOnClickListener {
-            val intent = Intent(this, PredictingActivity::class.java)
-            startActivity(intent)
-        }
+    private fun loadFragment(fragment: Fragment) {
+        val transaction: FragmentTransaction = this.supportFragmentManager.beginTransaction()
+        transaction.replace(R.id.container, fragment)
+        transaction.addToBackStack(null) // 可选，用于将事务添加到返回栈
+        transaction.commit()
     }
 
-    fun setupPermissions() {
+    private fun showToast(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun setupPermissions() {
         // request permissions
 
         // location permission
@@ -183,8 +278,22 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        val intentFilter1 = IntentFilter(Constants.ACTION_RESPECK_CONNECTION_STATUS)
+        LocalBroadcastManager.getInstance(this)
+            .registerReceiver(respeckConnectionReceiver, intentFilter1)
+
+        val intentFilter2 = IntentFilter(Constants.ACTION_THINGY_CONNECTION_STATUS)
+        LocalBroadcastManager.getInstance(this)
+            .registerReceiver(respeckConnectionReceiver, intentFilter2)
+    }
+
     override fun onDestroy() {
         super.onDestroy()
+        // 在 onPause 中取消注册广播接收器，以避免内存泄漏
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(respeckConnectionReceiver)
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(thingyConnectionReceiver)
         System.exit(0)
     }
 
@@ -278,4 +387,8 @@ class MainActivity : AppCompatActivity() {
         return super.onOptionsItemSelected(item)
     }
 
+    companion object {
+        lateinit var database: RecordDatabase
+            private set
+    }
 }
