@@ -69,6 +69,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.Toast
 import java.io.File
 import java.io.FileOutputStream
@@ -89,6 +90,11 @@ class SignupFragment : Fragment() {
         usernameEditText = view.findViewById(R.id.signupUsername)
         passwordEditText = view.findViewById(R.id.signupPassword)
         val signupButton = view.findViewById<Button>(R.id.buttonSignup)
+
+        val goBackButton = view.findViewById<ImageView>(R.id.button_back)
+        goBackButton.setOnClickListener {
+            requireActivity().onBackPressed()
+        }
 
         signupButton.setOnClickListener {
             val username = usernameEditText.text.toString()

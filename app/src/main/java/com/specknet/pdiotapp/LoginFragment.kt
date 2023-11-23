@@ -63,6 +63,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
@@ -91,6 +92,11 @@ class LoginFragment : Fragment() {
 //        val sharedPreferences = requireContext().getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
 //        // 获取 SharedPreferences 编辑器
 //        val editor = sharedPreferences.edit()
+
+        val goBackButton = view.findViewById<ImageView>(R.id.button_back)
+        goBackButton.setOnClickListener {
+            requireActivity().onBackPressed()
+        }
 
         //这里省略掉其他部分
         val model by activityViewModels<UserInfoViewModel>()
