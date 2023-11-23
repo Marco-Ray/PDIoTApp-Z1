@@ -45,7 +45,8 @@
             android:layout_height="wrap_content"
             android:gravity="bottom|center_horizontal"
             android:text="UserName"
-            android:textAlignment="center" />
+            android:textAlignment="center"
+            android:textSize="20sp" />
 
         <Spinner
             android:id="@+id/spinner"

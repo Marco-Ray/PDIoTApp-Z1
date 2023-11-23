@@ -290,7 +290,6 @@ class PredictFragment : Fragment() {
         handler.post {
             // TODO
             while (true) {
-                println("BackupPredict")
                 val currentActivityIndex = predictTask()
                 currentActivityIndexLiveData.postValue(currentActivityIndex)
                 runOnUiThread {
@@ -389,7 +388,7 @@ class PredictFragment : Fragment() {
             interpreter23 = Interpreter(modelByteBuffer)
             modelByteBuffer = loadModelFile("Task2OnlineRightLite-2.tflite")
             interpreter24 = Interpreter(modelByteBuffer)
-            modelByteBuffer = loadModelFile("Task2OnlineBackLite.tflite")
+            modelByteBuffer = loadModelFile("Task2OnlineBackLite-3.tflite")
 
             interpreter25 = Interpreter(modelByteBuffer)
             modelByteBuffer = loadModelFile("Task2OnlineStomachLite-2.tflite")
@@ -404,7 +403,7 @@ class PredictFragment : Fragment() {
             interpreter33 = Interpreter(modelByteBuffer)
             modelByteBuffer = loadModelFile("Task3OnlineRightLite.tflite")
             interpreter34 = Interpreter(modelByteBuffer)
-            modelByteBuffer = loadModelFile("Task3OnlineBackLite.tflite")
+            modelByteBuffer = loadModelFile("Task3OnlineBackLite (2).tflite")
             interpreter35 = Interpreter(modelByteBuffer)
             modelByteBuffer = loadModelFile("Task3OnlineStomachLite.tflite")
             interpreter36 = Interpreter(modelByteBuffer)
